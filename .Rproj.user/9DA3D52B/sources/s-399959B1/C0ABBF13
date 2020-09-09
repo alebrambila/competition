@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597340537201.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1950394240",
+    "id" : "C0ABBF13",
+    "lastKnownWriteTime" : 1597343918,
+    "last_content_update" : 1597343918764,
+    "path" : "C:/Users/Alejandro/iCloudDrive/Documents/Repositories/competition/itextrial.R",
+    "project_path" : "itextrial.R",
+    "properties" : {
+        "cursorPosition" : "132,0",
+        "scrollLine" : "99"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

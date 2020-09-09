@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597435702982.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "9F014941",
+    "lastKnownWriteTime" : 0,
+    "last_content_update" : 1597435702982,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "8A91A4F9",
+        "caption" : "fbw",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=fbw&cache_key=8A91A4F9",
+        "displayedObservations" : "60",
+        "environment" : "",
+        "expression" : "fbw",
+        "object" : "fbw",
+        "preview" : "0",
+        "totalObservations" : "60",
+        "variables" : "5"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

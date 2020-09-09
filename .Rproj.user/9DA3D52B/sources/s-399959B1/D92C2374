@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597340786084.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D92C2374",
+    "lastKnownWriteTime" : 2481321092736229998,
+    "last_content_update" : 1597340786084,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "EF60B7AF",
+        "caption" : "clo",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=clo&cache_key=EF60B7AF",
+        "displayedObservations" : "2048",
+        "environment" : "",
+        "expression" : "clo",
+        "object" : "clo",
+        "preview" : "0",
+        "totalObservations" : "2048",
+        "variables" : "3"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

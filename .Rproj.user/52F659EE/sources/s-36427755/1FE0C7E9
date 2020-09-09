@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597345013354.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "1FE0C7E9",
+    "lastKnownWriteTime" : 1595892201,
+    "last_content_update" : 1595892201,
+    "path" : "~/Documents/Repositories/competition/temps/summer_20/plot13air.csv",
+    "project_path" : "temps/summer_20/plot13air.csv",
+    "properties" : {
+        "cursorPosition" : "2,24",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}

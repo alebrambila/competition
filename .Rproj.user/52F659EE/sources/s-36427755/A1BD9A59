@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597687576983.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A1BD9A59",
+    "lastKnownWriteTime" : 46,
+    "last_content_update" : 1597687576983,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "2095C16D",
+        "caption" : "acr",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=acr&cache_key=2095C16D",
+        "displayedObservations" : 160,
+        "environment" : "",
+        "expression" : "acr",
+        "object" : "acr",
+        "preview" : 0,
+        "totalObservations" : 160,
+        "variables" : 7
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

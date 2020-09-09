@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597687684599.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "4B517414",
+    "lastKnownWriteTime" : 4449022203,
+    "last_content_update" : 1597687684599,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "8E93BB6C",
+        "caption" : "join",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=join&cache_key=8E93BB6C",
+        "displayedObservations" : 40,
+        "environment" : "",
+        "expression" : "join",
+        "object" : "join",
+        "preview" : 0,
+        "totalObservations" : 40,
+        "variables" : 7
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 13,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

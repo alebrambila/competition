@@ -1,0 +1,30 @@
+fbw<-read_csv("/Users/alejandro/Downloads/FBW_DATA-2.csv")%>%
+  filter(type=="Emergence"&Habitat=="Oak")%>%
+    filter(!is.na(count))%>%
+    filter(tree!="n/a")%>%
+  group_by(trap, year, tree, Treatment)%>%
+  summarize(moths=sum(count))%>%
+  ungroup()
+
+acr<-read_csv("/Users/alejandro/Downloads/ACORN_DATA.csv")%>%
+  group_by(year, Treatment, type, time, tree)%>%
+  summarize(count=sum(count))%>%
+  filter(type=="infested")%>%
+  ungroup()%>%
+  select(-type)%>%
+  mutate(year=year+1)
+
+join<-left_join(fbw, acr)
+
+
+ggplot(fbw, aes(x=Treatment, y=moths))+geom_boxplot()+geom_jitter(size=.7)+
+         facet_wrap(~year)
+
+
+ggplot(subset(join, time=="After"), aes(count, moths))+geom_point(aes(color=Treatment)) +
+  geom_smooth(method="lm", se=F) +
+  facet_wrap(~year, scales="free")  +
+  xlab("Number of infected nuts after grazing (previous year)")+
+  ylab("FBW caught in emergence trap (current year)")
+  
+       

@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597342102877.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "7B4C6E13",
+    "lastKnownWriteTime" : 8026363914660965410,
+    "last_content_update" : 1597342102877,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "83457B2B",
+        "caption" : "fullset1",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=fullset1&cache_key=83457B2B",
+        "displayedObservations" : "4128",
+        "environment" : "",
+        "expression" : "fullset1",
+        "object" : "fullset1",
+        "preview" : "0",
+        "totalObservations" : "4128",
+        "variables" : "5"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

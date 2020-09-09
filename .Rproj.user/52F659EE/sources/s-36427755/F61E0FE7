@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1597344906355.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "F61E0FE7",
+    "lastKnownWriteTime" : 140685848775288,
+    "last_content_update" : 1597344906355,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "57B895A8",
+        "caption" : "timelord",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=timelord&cache_key=57B895A8",
+        "displayedObservations" : 172,
+        "environment" : "",
+        "expression" : "timelord",
+        "object" : "timelord",
+        "preview" : 0,
+        "totalObservations" : 172,
+        "variables" : 2
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
