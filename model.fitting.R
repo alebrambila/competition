@@ -48,14 +48,14 @@ density_spring21 <- ### TO BE GATHERED IN JUNE 2021
   
 # annual seed production per capita (how do combine both of these?)
 # phytometers
-fecundity_phyt_a <- select(fecundity, type=="a")
+fecundity_phyt_a <- filter(fecundity, type=="a")
 
 #plot level
 fecundity_plot_a<-fecundity_plot
 
 # plug seed production per capita
 #phytometers
-fecundity_phyt_p <-select(fecundity, type=="p")
+fecundity_phyt_p <-filter(fecundity, type=="p")
   
 
 
@@ -106,22 +106,17 @@ sprsur2020s <-filter(spr_sur2020, seeded_s!=0)%>%
 #There is a second function that I'm not sure what to do with: Y ~ Normal(log(out_a)) where Y is the actual per capita seed output.  
   # there is also a parameter for error term for this formula: 1/t, t~1/Gamma(.001, .001)
 
-#Least Squares Version
-bevholt_annuallambda <- as.formula(out_a=lambda_a/(1+alpha_aa*density_a + 
-                                         alpha_ap*density_p))
 
-m1_annuallambda <- nlsLM(bev_holt, start = list(lambda_a=25, alpha_aa=5, alpha_ap=5),
-                 lower = c(0, -Inf, -Inf), 
-                 control=nls.lm.control(maxiter=40000), trace=T,
-                 data = dat)
-
+dat<-left_join(fecundity_phyt_a, density_spring20)%>%
+  mutate(out_a=seeds, density_a=am2, density_p=pm2)%>%
+  select(1, 6, 7, 8, out_a, density_a, density_p)
 
 # BRMS Version of Lambda/Alpha
-m3_vumy <- brm(bf(out_a=lambda_a/(1+alpha_aa*density_a + 
+annual_lambda <- brm(bf(out_a=lambda_a/(1+alpha_aa*density_a + 
                                     alpha_ap*density_p), 
-                  lambda_a ~ 1,
-                  alpha_aa ~ 1,
-                  alpha_ap ~ 1,
+                  lambda_a ~ warmtrt + (1|block) # these can be a function of treatments/randomn
+                  alpha_aa ~  warmtrt + (1|block), 
+                  alpha_ap ~  warmtrt + (1|block),
                   nl=TRUE),
                data = dat,
                prior = c(prior(gamma(30, 1), lb=0, nlpar = "lambda_a"), 
@@ -137,8 +132,43 @@ m3_vumy <- brm(bf(out_a=lambda_a/(1+alpha_aa*density_a +
 
 ### Estimating annual germination and spring survival (NO COMPETITIVE EFFECT?)
 
-bevholt_annualspring <- as.formula(spring_a~BetaBinomial(a, b, seedsin_a)) # not sure how to do this binomial part
-priors: a, b, Gamma(1, 1)
+dat<-sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%
+  dplyr::select(-seeded_s, -spring20_s)%>%
+  mutate(sprsur_a=spring20_a/seeded_a)
+
+
+# setting up beta-binomial (vs regular binomial) as described here: https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html#the-beta-binomial-distribution
+# need a custom family to account for overdispersion
+beta_binomial2 <- custom_family(
+  "beta_binomial2", dpars = c("mu", "phi"),
+  links = c("logit", "log"), lb = c(NA, 0),
+  type = "int", vars = "vint1[n]"
+)
+
+stan_funs <- "
+  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
+    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
+  }
+  int beta_binomial2_rng(real mu, real phi, int T) {
+    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
+  }
+"
+
+stanvars <- stanvar(scode = stan_funs, block = "functions")
+
+
+annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)), 
+    data = dat,
+    family=beta_binomial2,
+    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), 
+              prior(gamma(1, 1), nlpar = "b"),
+    inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
+    cores=4, 
+    chains=4,
+    iter=10000, 
+    thin=2,
+    control = list(adapt_delta = 0.99, max_treedepth = 18))
+
 
 
 ### Adult Perennial Parameter Fitting ----

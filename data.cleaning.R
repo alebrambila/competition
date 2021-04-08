@@ -67,19 +67,12 @@ phytometers1<-left_join(phytometers, select(startingphyt, -date))%>%
   mutate(type=substr(id, 1, 1), id=substr(id, 2, 2))%>%
   mutate(plotid=paste(row, column, sub, sep="."))
 
-phytometers0<-left_join(phytometers1, plotkey)%>%
-  mutate(comptrt=ifelse(comptrt=="none", "none", ifelse(comptrt=="a", "annuals", 
-                                                     ifelse(comptrt=="p", "adult perennials", 
-                                                            ifelse(comptrt=="s", "seedling perennials",
-                                                                    ifelse(comptrt=="a_p", "annuals+adults", 
-                                                                           ifelse(comptrt=="a_s", "annuals+seedlings", "seedlings+adults")))))))
-phytometers0$comptrt <- factor(phytometers0$comptrt, levels = c("none", "annuals", "seedling perennials", "adult perennials", "annuals+seedlings", "annuals+adults", "seedlings+adults"))
 
 # to do - correct tillers to florets. this year I want to count seeds...
     # to be more accurate. germination is so low that i should. florets can maybe have >1 seed in them
 #read_csv("florets.csv")
 
-fecundity<-select(phytometers0, plotid, block, warmtrt, comptrt, type, id, tillers)%>%
+fecundity<-select(phytometers1, plotid, type, id, tillers)%>%
   filter(type!="s")%>%
   filter(!is.na(tillers))%>%
   mutate(seeds=ifelse(type=="a", tillers*30, tillers*30))
