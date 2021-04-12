@@ -160,7 +160,7 @@ stanvars <- stanvar(scode = stan_funs, block = "functions")
 annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)), 
     data = dat,
     family=beta_binomial2,
-    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), 
+    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), # not nlpar, not a nonlinear
               prior(gamma(1, 1), nlpar = "b"),
     inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
     cores=4, 
