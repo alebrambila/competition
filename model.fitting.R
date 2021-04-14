@@ -193,6 +193,46 @@ annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)),
     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
+## New, simple binomial model of germination ----
+# (not sure you need a beta-binomial really.  You don't have tons of data and it means fitting an extra parameter)
+
+dat.surv <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
+  dplyr::select(-seeded_s, -spring20_s)%>%
+  mutate(sprsur_a=spring20_a/seeded_a)
+
+dat.surv
+# quick graphs of variables going into model
+ggplot(dat.surv, aes(x=seeded_a, y=spring20_a)) +
+  geom_jitter(aes(color=warmtrt))
+
+ggplot(dat.surv, aes(x=warmtrt, y=spring20_a/seeded_a)) +
+  geom_boxplot()+
+  # geom_point(color='blue') +
+  geom_jitter(width=.1) # 
+
+# check replication within blocks
+table(dat.surv$warmtrt, dat.surv$block) # 3 per block
+
+# fit simple binomial model
+annual_sprsur <- brm(bf(spring20_a|trials(seeded_a) ~ warmtrt + (1|block)), 
+                     data = dat.surv,
+                     family=binomial,
+                     inits = "0",  
+                     cores=4, 
+                     chains=4,
+                     iter=5000, 
+                     thin=5,
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+annual_sprsur
+fixef(annual_sprsur)
+conditional_effects(annual_sprsur)
+
+nd <- tibble(warmtrt = c("amb","warm"), block=NA, seeded_a=1)
+n_iter<-100
+
+fitted(annual_sprsur,newdata = nd, summary = TRUE ) %>%
+  as_tibble() 
 
 ### Adult Perennial Parameter Fitting ----
 ### Adult Lambda/Alphas
