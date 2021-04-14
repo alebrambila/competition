@@ -234,6 +234,22 @@ n_iter<-100
 fitted(annual_sprsur,newdata = nd, summary = TRUE ) %>%
   as_tibble() 
 
+# Graph probabilities ~ treatment
+
+f <-
+  fitted(annual_sprsur,
+         newdata  = nd,
+         summary = F,
+         nsamples = n_iter) %>% 
+  as_tibble() %>%
+  rename(amb = V1, warm=V2) %>%
+  pivot_longer(cols=amb:warm, names_to="treatment", values_to="probability")
+f
+
+f %>% ggplot(aes(x=treatment, y=probability))+
+  stat_pointinterval(.width = c(.66, .95))
+
+
 ### Adult Perennial Parameter Fitting ----
 ### Adult Lambda/Alphas
 
