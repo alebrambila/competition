@@ -111,23 +111,46 @@ dat<-left_join(fecundity_phyt_a, density_spring20)%>%
   mutate(out_a=seeds, density_a=am2, density_p=pm2)%>%
   select(1, 6, 7, 8, out_a, density_a, density_p)
 
+# quick graphs of variables going into model
+ggplot(dat, aes(y=out_a)) +
+  geom_jitter(aes(x=density_a, color=warmtrt))
+ggplot(dat, aes(y=out_a)) +
+  geom_jitter(aes(x=density_p, color=warmtrt))
+ggplot(dat, aes(x=density_a, y=density_p)) +
+  geom_jitter(aes(color=warmtrt))
+
+
+ggplot(dat, aes(x=density_a, y=out_a, color=warmtrt)) +
+  geom_jitter()+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 300, b = .1)),
+              se = FALSE)
+
+# check replication within blocks
+table(dat$warmtrt, dat$block)
+
 # BRMS Version of Lambda/Alpha
-annual_lambda <- brm(bf(out_a=lambda_a/(1+alpha_aa*density_a + 
-                                    alpha_ap*density_p), 
-                  lambda_a ~ warmtrt + (1|block) # these can be a function of treatments/randomn
-                  alpha_aa ~  warmtrt + (1|block), 
-                  alpha_ap ~  warmtrt + (1|block),
-                  nl=TRUE),
-               data = dat,
-               prior = c(prior(gamma(30, 1), lb=0, nlpar = "lambda_a"), 
-                         prior(gamma(1, 9), nlpar = "alpha_aa"),
-                         prior(gamma(1, 9), nlpar = "alpha_ap")),
-               inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
-               cores=4, 
-               chains=4,
-               iter=10000, 
-               thin=2,
-               control = list(adapt_delta = 0.99, max_treedepth = 18))
+## NOTES / CHANGES: 
+# parameter names can't have underscore or dots
+# it's not liking the gamma priors (not clear to me why), so changed to normal
+
+annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density_p), 
+                        lambdaA ~ warmtrt + (1|block), 
+                        alphaAA ~  warmtrt + (1|block), 
+                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
+                     data = dat,
+                     prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaA"), 
+                               # prior(gamma(3, .01), nlpar = "lambdaA"), 
+                               prior(normal(0, .1), nlpar = "alphaAA"),
+                               prior(normal(0, .1), nlpar = "alphaAP")),
+                     inits = "0",  
+                     cores=4, 
+                     chains=4,
+                     iter=5000, 
+                     thin=5,
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
 ### Estimating annual germination and spring survival (NO COMPETITIVE EFFECT?)
