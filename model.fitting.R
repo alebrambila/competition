@@ -152,45 +152,37 @@ annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-
-### Estimating annual germination and spring survival (NO COMPETITIVE EFFECT?)
-
-dat<-sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%
-  dplyr::select(-seeded_s, -spring20_s)%>%
-  mutate(sprsur_a=spring20_a/seeded_a)
-
-
 # setting up beta-binomial (vs regular binomial) as described here: https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html#the-beta-binomial-distribution
 # need a custom family to account for overdispersion
-beta_binomial2 <- custom_family(
-  "beta_binomial2", dpars = c("mu", "phi"),
-  links = c("logit", "log"), lb = c(NA, 0),
-  type = "int", vars = "vint1[n]"
-)
+#beta_binomial2 <- custom_family(
+#  "beta_binomial2", dpars = c("mu", "phi"),
+#  links = c("logit", "log"), lb = c(NA, 0),
+#  type = "int", vars = "vint1[n]"
+#)
 
-stan_funs <- "
-  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
-    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
-  }
-  int beta_binomial2_rng(real mu, real phi, int T) {
-    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
-  }
-"
+#stan_funs <- "
+#  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
+#    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
+#  }
+#  int beta_binomial2_rng(real mu, real phi, int T) {
+#    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
+#  }
+#"
 
-stanvars <- stanvar(scode = stan_funs, block = "functions")
+#stanvars <- stanvar(scode = stan_funs, block = "functions")
 
 
-annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)), 
-    data = dat,
-    family=beta_binomial2,
-    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), # not nlpar, not a nonlinear
-              prior(gamma(1, 1), nlpar = "b"),
-    inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
-    cores=4, 
-    chains=4,
-    iter=10000, 
-    thin=2,
-    control = list(adapt_delta = 0.99, max_treedepth = 18))
+#annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)), 
+#    data = dat,
+ #   family=beta_binomial2,
+#    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), # not nlpar, not a nonlinear
+#              prior(gamma(1, 1), nlpar = "b"),
+#    inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
+#    cores=4, 
+#    chains=4,
+#    iter=10000, 
+#    thin=2,
+#    control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
 ## New, simple binomial model of germination ----
@@ -260,39 +252,39 @@ f %>% ggplot(aes(x=treatment, y=probability))+
 #alpha_pp = per capita competitive effect of adult perennials on perennials: PARAMETER
 # density_p = density of adult perennials: DATA!
 
-#Same second function: Y ~ Normal(log(out_p)) where Y is the actual per capita seed output, with: sigma=1/t, t~1/Gamma(.001, .001)
-
-#Least Squares Version
-bevholt_adultlambda <- as.formula(out_p=lambda_p/(1+alpha_pa*density_a + 
-                                                     alpha_pp*density_p))
-
-m1_adultlambda <- nlsLM(bev_holt, start = list(lambda_a=200, alpha_pa=5, alpha_pp=5),
-                         lower = c(0, -Inf, -Inf), 
-                         control=nls.lm.control(maxiter=40000), trace=T,
-                         data = dat)
-
-
-# BRMS Version of Lambda/Alpha
-m3_vumy <- brm(bf(out_p=lambda_p/(1+alpha_pa*density_a + 
-                                    alpha_pp*density_p), 
-                  lambda_p ~ 1,
-                  alpha_pa ~ 1,
-                  alpha_pp ~ 1,
-                  nl=TRUE),
-               data = dat,
-               prior = c(prior(gamma(200, 1), lb=0, nlpar = "lambda_p"), 
-                         prior(gamma(1, 9), nlpar = "alpha_pa"),
-                         prior(gamma(1, 9), nlpar = "alpha_pp")),
-               inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
-               cores=4, 
-               chains=4,
-               iter=10000, 
-               thin=2,
-               control = list(adapt_delta = 0.99, max_treedepth = 18))
+# Perennial Lambda/Alpha ----
+perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
+                        lambdaA ~ warmtrt + (1|block), 
+                        alphaAA ~  warmtrt + (1|block), 
+                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
+                     data = dat,
+                     prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaP"), 
+                               # prior(gamma(3, .01), nlpar = "lambdaA"), 
+                               prior(normal(0, .1), nlpar = "alphaPA"),
+                               prior(normal(0, .1), nlpar = "alphaPP")),
+                     inits = "0",  
+                     cores=4, 
+                     chains=4,
+                     iter=5000, 
+                     thin=5,
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
-### Adult summer survival
-summer_p ~ Beta-Binomial( a, b, spring_p)
+### Adult summer survival (DONT DO IT FOR NOW - 100% survival when not gophered)
+# fit simple binomial model
+#annual_sprsur <- brm(bf(FALLP|trials(SPRINGP) ~ warmtrt + (1|block)), 
+#                     data = dat.surv,
+ #                    family=binomial,
+  #                   inits = "0",  
+   #                  cores=4, 
+    #                 chains=4,
+     #                iter=5000, 
+      #               thin=5,
+       #              control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+
+#TRY WITH BERNOULLI
+
 # mean value from mordecai is .88, i had 100%
 # priors a~Gamma(8, 1) b~Gamma(.01, 1)
 
@@ -311,42 +303,57 @@ summer_p ~ Beta-Binomial( a, b, spring_p)
 #DIFFERENT second function: Y ~ Normal(log(out_p)) where Y is the actual # of surviving seedlings, 
     # with: Y ~ Beta-Binomial(a, a(1-out_s)/out_s, density_x) a~Gamma(1, 1)
 
-#Least Squares Version
-bevholt_seedling_summer <- as.formula(out_s=summersurvival_s/(1+alpha_sa*density_a + 
-                                                                alpha_ss*density_s+
-                                                                alpha_sp*density_p))
-
-m1_summersurvival_s <- nlsLM(bev_holt, start = list(summersurvival_s=0.3, alpha_sa=5, alpha_ss=5, alpha_sp=5),
-                        lower = c(0, -Inf, -Inf, -Inf), 
-                        control=nls.lm.control(maxiter=40000), trace=T,
-                        data = dat)
-
-
-# BRMS Version of Seedling Summer Survival
-m3_vumy <- brm(bf(out_s=summersurvival_s/(1+alpha_sa*density_a + 
-                                            alpha_ss*density_s+
-                                            alpha_sp*density_p), 
-                  summersurvival_s ~ 1,
-                  alpha_sa ~ 1,
-                  alpha_ss ~ 1,
-                  alpha_sp ~ 1,
-                  nl=TRUE),
-               data = dat,
-               prior = c(prior(beta(1, 1), lb=0, nlpar = "summersurvival_s"), 
-                         prior(gamma(1, 9), nlpar = "alpha_sa"),
-                         prior(gamma(1, 9), nlpar = "alpha_ss"),
-                         prior(gamma(1, 9), nlpar = "alpha_sp")),
-               inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
-               cores=4, 
-               chains=4,
-               iter=10000, 
-               thin=2,
-               control = list(adapt_delta = 0.99, max_treedepth = 18))
+# Seedling Summer Survival ----
+seedling_sumsur <- brm(bf(out_s ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
+                        sumsurS ~ warmtrt + (1|block), 
+                        alphaAA ~  warmtrt + (1|block), 
+                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
+                       family=binomial,
+                     data = dat,
+                     prior = c(prior(beta(1, 1), lb=0, nlpar = "sumsurS"), 
+                               # prior(gamma(3, .01), nlpar = "lambdaA"), 
+                               prior(normal(0, .1), nlpar = "alphaSA"),
+                               prior(normal(0, .1), nlpar = "alphaSS"),
+                               prior(normal(0, .1), nlpar = "alphaSP")),
+                     inits = "0",  
+                     cores=4, 
+                     chains=4,
+                     iter=5000, 
+                     thin=5,
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
-### Seedling Spring Survival              - is .34 in mordecai
-bevholt_seedlingspring <- as.formula(spring_s~BetaBinomial(a, b, seedsin_s)) # not sure how to do this binomial part
-priors: a, b, Gamma(1, 1)
+
+### Seedling Spring Survival              - is .34 in mordecai -----
+dat.surv <- sprsur2020s<-filter(spr_sur2020, seeded_s!=0)%>%  # just naming the data something different 
+  dplyr::select(-seeded_a, -spring20_a)%>%
+  mutate(sprsur_s=spring20_s/seeded_s)
+
+dat.surv
+
+# quick graphs of variables going into model
+ggplot(dat.surv, aes(x=seeded_s, y=spring20_s)) +
+  geom_jitter(aes(color=warmtrt))
+
+ggplot(dat.surv, aes(x=warmtrt, y=spring20_s/seeded_s)) +
+  geom_boxplot()+
+  # geom_point(color='blue') +
+  geom_jitter(width=.1) # 
+
+# check replication within blocks
+table(dat.surv$warmtrt, dat.surv$block) # 3 per block
+
+# fit simple binomial model
+annual_sprsur <- brm(bf(spring20_s|trials(seeded_s) ~ warmtrt + (1|block)), 
+                     data = dat.surv,
+                     family=binomial,
+                     inits = "0",  
+                     cores=4, 
+                     chains=4,
+                     iter=5000, 
+                     thin=5,
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
+
 
 ### Final Params: seedling competitive effects
 # value from mordecai is .5, oddly much higher than other competitive effects in the model...?
