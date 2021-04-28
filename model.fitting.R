@@ -13,19 +13,6 @@ library(gridExtra)
 # This script is to estimate the parameters necessary to be able to perform invasion analysis and additional 
 # simulation of an annual (Lolium multiflorum) and perennial (Festuca roemeri) in competition at various densities.
 #  Here I estimate the inherent growth rates and competition coefficients in both warmed and ambient plots.
-# ~~ I haven't actually made warmed and unwarmed models yet, just one version for each 'species' ~~
-
-## Questions:
-# How do I take into account random effects in the models: i.e. block, or eventually, year. 
-# What is the second function in 'formulas'?  How do I incorporate it?
-# How to do the binomial functions for survival.
-# Are counts or cover more appropriate for competition context.  
-  #"Per Capita' implies counts, but with variation in size, cover might be a better representation of competition strength.
-  # In that case the alphas wouldn't be per-capita, but per-unit of cover (%)
-# What is my unit of replication.  If it's plots in each treatment its very low (n=4), 
-  #If it's individuals that survive/reproduce/etc. it's much more, but its generally not how my data is set up
-  # I realized I had this question because I have individual fecundity/survival data for phytometers, but also 
-      # a bunch more that I can infer from counts and plot level seed production data.  Can I merge these?
 
 ### Read in needed data ----
 ### I need to model EACH 'species' parameters in each warming treatment
@@ -40,7 +27,7 @@ density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time,
   mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
   mutate(pm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_p, count_p/.66))%>%
   mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))
-density_spring21 <- ### TO BE GATHERED IN JUNE 2021
+#density_spring21 <- ### TO BE GATHERED IN JUNE 2021
 #am2, pm2 and sm2 are the relevant data here. 
   
 ### Fecundity
@@ -64,7 +51,7 @@ fecundity_phyt_p <-filter(fecundity, type=="p")
 # this includes phytometers and background within each plot
 # I could pull out phytometers to see if size, immediate neighbors matter
 sumsur2020s<-right_join(plotkey, seedling_sumsur2020)
-sumsur2021s <- ### TO BE GATHERED JUNE AND SEPTEMBER 2021
+#sumsur2021s <- ### TO BE GATHERED JUNE AND SEPTEMBER 2021
 #spring20_s and fall20_s.g are the relevant data here
 
 
@@ -93,35 +80,25 @@ sprsur2020s <-filter(spr_sur2020, seeded_s!=0)%>%
 ## Per capita effects of seedlings on adults: I dont completely understand this one. 
     # We need it for the full model but it seems to be based on the strength of annual competition somehow
 
-### Annual Parameter Fitting ----
+#################
+### ANNUALS ----
 
-### Estimating Lambdas and Alphas
-# out_a = measured seed output (per capita):  DATA!
-# lambda_a = annual per capita seed production in the absence of competition: PARAMETER!
-# alpha_aa = per capita competitive effect of annuals on annuals: PARAMETER!
-# density_a = density of annuals (cover): DATA!
-#alpha_ap = per capita competitive effect of adult perennials on annuals: PARAMETER
-# density_p = density of adult perennials: DATA!
-
-#There is a second function that I'm not sure what to do with: Y ~ Normal(log(out_a)) where Y is the actual per capita seed output.  
-  # there is also a parameter for error term for this formula: 1/t, t~1/Gamma(.001, .001)
-
-
+### Lambda and Alphas ----
 dat<-left_join(fecundity_phyt_a, density_spring20)%>%
   mutate(out_a=seeds, density_a=am2, density_p=pm2)%>%
   select(1, 6, 7, 8, out_a, density_a, density_p)
 
-# quick graphs of variables going into model
-ggplot(dat, aes(y=out_a)) +
-  geom_jitter(aes(x=density_a, color=warmtrt))
-ggplot(dat, aes(y=out_a)) +
-  geom_jitter(aes(x=density_p, color=warmtrt))
-ggplot(dat, aes(x=density_a, y=density_p)) +
-  geom_jitter(aes(color=warmtrt))
-
+#visualizations (annual fecundity as a function of perennial density (1), and annual density (2))
+ggplot(dat, aes(x=out_a, y=density_p, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 300, b = .1)),
+              se = FALSE)
 
 ggplot(dat, aes(x=density_a, y=out_a, color=warmtrt)) +
-  geom_jitter()+
+  geom_jitter(aes(shape=comptrt))+
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
@@ -131,11 +108,11 @@ ggplot(dat, aes(x=density_a, y=out_a, color=warmtrt)) +
 # check replication within blocks
 table(dat$warmtrt, dat$block)
 
-# BRMS Version of Lambda/Alpha
 ## NOTES / CHANGES: 
 # parameter names can't have underscore or dots
 # it's not liking the gamma priors (not clear to me why), so changed to normal
 
+# parameter estimation:
 annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density_p), 
                         lambdaA ~ warmtrt + (1|block), 
                         alphaAA ~  warmtrt + (1|block), 
@@ -152,52 +129,18 @@ annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-# setting up beta-binomial (vs regular binomial) as described here: https://cran.r-project.org/web/packages/brms/vignettes/brms_customfamilies.html#the-beta-binomial-distribution
-# need a custom family to account for overdispersion
-#beta_binomial2 <- custom_family(
-#  "beta_binomial2", dpars = c("mu", "phi"),
-#  links = c("logit", "log"), lb = c(NA, 0),
-#  type = "int", vars = "vint1[n]"
-#)
 
-#stan_funs <- "
-#  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
-#    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
-#  }
-#  int beta_binomial2_rng(real mu, real phi, int T) {
-#    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
-#  }
-#"
-
-#stanvars <- stanvar(scode = stan_funs, block = "functions")
-
-
-#annual_sprsur <- brm(bf(spring20_a|vint(seeded_a) ~ warmtrt + (1|block)), 
-#    data = dat,
- #   family=beta_binomial2,
-#    prior = c(prior(gamma(1, 1), lb=0, nlpar = "a"), # not nlpar, not a nonlinear
-#              prior(gamma(1, 1), nlpar = "b"),
-#    inits = "0",  #list(lambda=100, aA=1, aB=1, aL=1, aV=1, aE=1),
-#    cores=4, 
-#    chains=4,
-#    iter=10000, 
-#    thin=2,
-#    control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-
-## New, simple binomial model of germination ----
-# (not sure you need a beta-binomial really.  You don't have tons of data and it means fitting an extra parameter)
-
-dat.surv <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
+### annual germination/spring survival ----
+dat.surv.a <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
   dplyr::select(-seeded_s, -spring20_s)%>%
   mutate(sprsur_a=spring20_a/seeded_a)
 
-dat.surv
+dat.surv.a
 # quick graphs of variables going into model
-ggplot(dat.surv, aes(x=seeded_a, y=spring20_a)) +
-  geom_jitter(aes(color=warmtrt))
+ggplot(dat.surv.a, aes(x=seeded_a, y=spring20_a)) +
+  geom_jitter(aes(color=warmtrt), width=100)
 
-ggplot(dat.surv, aes(x=warmtrt, y=spring20_a/seeded_a)) +
+ggplot(dat.surv.a, aes(x=warmtrt, y=spring20_a/seeded_a)) +
   geom_boxplot()+
   # geom_point(color='blue') +
   geom_jitter(width=.1) # 
@@ -205,9 +148,10 @@ ggplot(dat.surv, aes(x=warmtrt, y=spring20_a/seeded_a)) +
 # check replication within blocks
 table(dat.surv$warmtrt, dat.surv$block) # 3 per block
 
-# fit simple binomial model
+
+###### fit simple annual binomial model
 annual_sprsur <- brm(bf(spring20_a|trials(seeded_a) ~ warmtrt + (1|block)), 
-                     data = dat.surv,
+                     data = dat.surv.a,
                      family=binomial,
                      inits = "0",  
                      cores=4, 
@@ -216,7 +160,10 @@ annual_sprsur <- brm(bf(spring20_a|trials(seeded_a) ~ warmtrt + (1|block)),
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
+
 annual_sprsur
+summary(annual_sprsur)
+plot(annual_sprsur)
 fixef(annual_sprsur)
 conditional_effects(annual_sprsur)
 
@@ -241,23 +188,36 @@ f
 f %>% ggplot(aes(x=treatment, y=probability))+
   stat_pointinterval(.width = c(.66, .95))
 
-
+##########################################
 ### Adult Perennial Parameter Fitting ----
-### Adult Lambda/Alphas
+### Adult Perennial Lambda/Alphas ----
+datp<-left_join(fecundity_phyt_p, density_spring20)%>%
+  mutate(out_p=seeds, density_a=am2, density_p=pm2)%>%
+  select(1, 6, 7, 8, out_p, density_a, density_p)
 
-# out_p = measured adult seed output (per capita):  DATA!
-# lambda_p = adult per capita seed production in the absence of competition: PARAMETER!
-# alpha_pa = per capita competitive effect of annuals on adults: PARAMETER!
-# density_a = density of annuals (cover): DATA!
-#alpha_pp = per capita competitive effect of adult perennials on perennials: PARAMETER
-# density_p = density of adult perennials: DATA!
+#visualizations (adult perennial fecundity as a function of perennial density (1), and annual density (2))
+ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 300, b = .1)),
+              se = FALSE)
 
-# Perennial Lambda/Alpha ----
+ggplot(datp, aes(x=density_a, y=out_p, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 450, b = .1)),
+              se = FALSE)
+
+
 perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
                         lambdaA ~ warmtrt + (1|block), 
                         alphaAA ~  warmtrt + (1|block), 
                         alphaAP ~  warmtrt + (1|block), nl=TRUE),
-                     data = dat,
+                     data = datp,
                      prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaP"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaPA"),
@@ -291,25 +251,17 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*dens
 
 ### Seedling Perennial Parameter Fitting ----
 
-# out_s = measured perennial seedling survival:  DATA! (mean=.29 for mordecai)
-# summersurvival_s = seedling per capita summer survival in the absence of competition: PARAMETER!
-# alpha_sa = per capita competitive effect of annuals on adults: PARAMETER!
-# density_a = density of annuals (cover): DATA!
-#alpha_sp = per capita competitive effect of adult perennials on seedlings: PARAMETER
-# density_p = density of adult perennials: DATA!
-#alpha_ss = per capita competitive effect of seedlings on seedlings: PARAMETER
-# density_s = density of seedlings: DATA!
-
-#DIFFERENT second function: Y ~ Normal(log(out_p)) where Y is the actual # of surviving seedlings, 
-    # with: Y ~ Beta-Binomial(a, a(1-out_s)/out_s, density_x) a~Gamma(1, 1)
-
 # Seedling Summer Survival ----
-seedling_sumsur <- brm(bf(out_s ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
+dats<-left_join(seedling_sumsur2020, density_spring20)%>%
+  mutate(density_a=am2, density_p=pm2, density_s=pm2)%>%
+  select(1, 6, 7, 8, fall20_s.g, spring20_s, density_a, density_p)
+
+seedling_sumsur <- brm(bf(trials(fall20_s.g|spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
                         sumsurS ~ warmtrt + (1|block), 
                         alphaAA ~  warmtrt + (1|block), 
                         alphaAP ~  warmtrt + (1|block), nl=TRUE),
                        family=binomial,
-                     data = dat,
+                     data = dats,
                      prior = c(prior(beta(1, 1), lb=0, nlpar = "sumsurS"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaSA"),
@@ -333,7 +285,7 @@ dat.surv
 
 # quick graphs of variables going into model
 ggplot(dat.surv, aes(x=seeded_s, y=spring20_s)) +
-  geom_jitter(aes(color=warmtrt))
+  geom_jitter(aes(color=warmtrt), width=100)
 
 ggplot(dat.surv, aes(x=warmtrt, y=spring20_s/seeded_s)) +
   geom_boxplot()+
@@ -344,7 +296,7 @@ ggplot(dat.surv, aes(x=warmtrt, y=spring20_s/seeded_s)) +
 table(dat.surv$warmtrt, dat.surv$block) # 3 per block
 
 # fit simple binomial model
-annual_sprsur <- brm(bf(spring20_s|trials(seeded_s) ~ warmtrt + (1|block)), 
+seedling_sprsur <- brm(bf(spring20_s|trials(seeded_s) ~ warmtrt + (1|block)), 
                      data = dat.surv,
                      family=binomial,
                      inits = "0",  
@@ -353,6 +305,12 @@ annual_sprsur <- brm(bf(spring20_s|trials(seeded_s) ~ warmtrt + (1|block)),
                      iter=5000, 
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+seedling_sprsur
+summary(seedling_sprsur)
+plot(seedling_sprsur)
+fixef(seedling_sprsur)
+conditional_effects(seedling_sprsur)
 
 
 ### Final Params: seedling competitive effects
