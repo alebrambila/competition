@@ -127,8 +127,11 @@ annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density
                      chains=4,
                      iter=5000, 
                      thin=5,
-                     control = list(adapt_delta = 0.99, max_treedepth = 18))
-
+                     control = list(adapt_delta = 0.99, max_treedepth = 12))
+annual_lambda
+plot(annual_lambda)
+fixef(annual_lambda)
+conditional_effects(annual_lambda)
 
 ### annual germination/spring survival ----
 dat.surv.a <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
@@ -160,7 +163,7 @@ annual_sprsur <- brm(bf(spring20_a|trials(seeded_a) ~ warmtrt + (1|block)),
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-
+stancode(annual_sprsur)
 annual_sprsur
 summary(annual_sprsur)
 plot(annual_sprsur)
@@ -209,13 +212,13 @@ ggplot(datp, aes(x=density_a, y=out_p, color=warmtrt)) +
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
-              method.args = list(start = list(a = 450, b = .1)),
+              method.args = list(start = list(a = 300, b = .1)),
               se = FALSE)
 
 perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
-                        lambdaA ~ warmtrt + (1|block), 
-                        alphaAA ~  warmtrt + (1|block), 
-                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
+                        lambdaP ~ warmtrt + (1|block), 
+                        alphaPA ~  warmtrt + (1|block), 
+                        alphaPP ~  warmtrt + (1|block), nl=TRUE),
                      data = datp,
                      prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaP"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
@@ -228,6 +231,10 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*dens
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
+perennial_lambda
+plot(perennial_lambda)
+fixef(perennial_lambda)
+conditional_effects(perennial_lambda)
 
 ### Adult summer survival (DONT DO IT FOR NOW - 100% survival when not gophered)
 # fit simple binomial model
@@ -253,7 +260,7 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*dens
 # Seedling Summer Survival ----
 dats<-left_join(select(seedling_sumsur2020, -time), density_spring20)%>%
   mutate(density_a=am2, density_p=pm2, density_s=pm2)%>%
-  select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p)
+  select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p, density_s)
 
 
 #visualizations (annual fecundity as a function of perennial density (1), and annual density (2))
@@ -273,14 +280,14 @@ ggplot(dats, aes(x=density_p, y=fall20_s.g/spring20_s, color=warmtrt)) +
               method.args = list(start = list(a = 300, b = .1)),
               se = FALSE)
 
-
-seedling_sumsur <- brm(bf(trials(fall20_s.g|spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
+seedling_sumsur <- brm(bf(fall20_s.g|trials(spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
                         sumsurS ~ warmtrt + (1|block), 
-                        alphaAA ~  warmtrt + (1|block), 
-                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
+                        alphaSA ~  warmtrt + (1|block), 
+                        alphaSP ~  warmtrt + (1|block), 
+                        alphaSS ~  warmtrt + (1|block), nl=TRUE),
                        family=binomial,
                      data = dats,
-                     prior = c(prior(beta(1, 1), lb=0, nlpar = "sumsurS"), 
+                     prior = c(prior(normal(1, 1), lb=0, nlpar = "sumsurS"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaSA"),
                                prior(normal(0, .1), nlpar = "alphaSS"),
