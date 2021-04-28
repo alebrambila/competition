@@ -212,7 +212,6 @@ ggplot(datp, aes(x=density_a, y=out_p, color=warmtrt)) +
               method.args = list(start = list(a = 450, b = .1)),
               se = FALSE)
 
-
 perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
                         lambdaA ~ warmtrt + (1|block), 
                         alphaAA ~  warmtrt + (1|block), 
@@ -252,9 +251,28 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*dens
 ### Seedling Perennial Parameter Fitting ----
 
 # Seedling Summer Survival ----
-dats<-left_join(seedling_sumsur2020, density_spring20)%>%
+dats<-left_join(select(seedling_sumsur2020, -time), density_spring20)%>%
   mutate(density_a=am2, density_p=pm2, density_s=pm2)%>%
-  select(1, 6, 7, 8, fall20_s.g, spring20_s, density_a, density_p)
+  select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p)
+
+
+#visualizations (annual fecundity as a function of perennial density (1), and annual density (2))
+ggplot(dats, aes(x=density_a, y=fall20_s.g/spring20_s, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 300, b = .1)),
+              se = FALSE)
+
+ggplot(dats, aes(x=density_p, y=fall20_s.g/spring20_s, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x),
+              method.args = list(start = list(a = 300, b = .1)),
+              se = FALSE)
+
 
 seedling_sumsur <- brm(bf(trials(fall20_s.g|spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
                         sumsurS ~ warmtrt + (1|block), 
