@@ -89,21 +89,23 @@ dat<-left_join(fecundity_phyt_a, density_spring20)%>%
   select(1, 6, 7, 8, out_a, density_a, density_p)
 
 #visualizations (annual fecundity as a function of perennial density (1), and annual density (2))
-ggplot(dat, aes(x=out_a, y=density_p, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt))+
-  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
-  stat_smooth(method = "nls",
-              formula = y ~ a/(1+b*x),
-              method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+ggplot(dat, aes(x=density_p, y=out_a, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt), width=1)+
+   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+  #stat_smooth(method = "nls",
+       #       formula = y ~ a/(1+b*x),
+      #       method.args = list(start = list(a = 100, b = .1)),
+        #      se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("Np(t))")
 
 ggplot(dat, aes(x=density_a, y=out_a, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt))+
+  geom_jitter(aes(shape=comptrt), width=1)+
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
               method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+              se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("Na(t))")
 
 # check replication within blocks
 table(dat$warmtrt, dat$block)
@@ -118,16 +120,16 @@ annual_lambda <- brm(bf(out_a ~ lambdaA / (1+alphaAA*density_a + alphaAP*density
                         alphaAA ~  warmtrt + (1|block), 
                         alphaAP ~  warmtrt + (1|block), nl=TRUE),
                      data = dat,
-                     prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaA"), 
+                     prior = c(prior(normal(200, 50), lb=0, nlpar = "lambdaA"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaAA"),
                                prior(normal(0, .1), nlpar = "alphaAP")),
                      inits = "0",  
                      cores=4, 
                      chains=4,
-                     iter=5000, 
+                     iter=10000, 
                      thin=5,
-                     control = list(adapt_delta = 0.99, max_treedepth = 12))
+                     control = list(adapt_delta = 0.99, max_treedepth = 16))
 annual_lambda
 plot(annual_lambda)
 fixef(annual_lambda)
@@ -141,7 +143,8 @@ dat.surv.a <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming th
 dat.surv.a
 # quick graphs of variables going into model
 ggplot(dat.surv.a, aes(x=seeded_a, y=spring20_a)) +
-  geom_jitter(aes(color=warmtrt), width=100)
+  geom_jitter(aes(color=warmtrt), width=100)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t)")+xlab("na(t))")
 
 ggplot(dat.surv.a, aes(x=warmtrt, y=spring20_a/seeded_a)) +
   geom_boxplot()+
@@ -205,32 +208,35 @@ ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
               method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+              se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("Np(t)")+ylab("ns(t+1)")
 
 ggplot(datp, aes(x=density_a, y=out_p, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
-              method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+              method.args = list(start = list(a = 1000, b = .1)),
+              se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("ns(t+1)")+xlab("Na(t)")
 
 perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
                         lambdaP ~ warmtrt + (1|block), 
                         alphaPA ~  warmtrt + (1|block), 
                         alphaPP ~  warmtrt + (1|block), nl=TRUE),
                      data = datp,
-                     prior = c(prior(normal(300, 50), lb=0, nlpar = "lambdaP"), 
+                     prior = c(prior(normal(1000, 100), lb=0, nlpar = "lambdaP"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaPA"),
                                prior(normal(0, .1), nlpar = "alphaPP")),
                      inits = "0",  
                      cores=4, 
                      chains=4,
-                     iter=5000, 
+                     iter=10000, 
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
+savedPL<-perennial_lambda
 perennial_lambda
 plot(perennial_lambda)
 fixef(perennial_lambda)
@@ -263,14 +269,15 @@ dats<-left_join(select(seedling_sumsur2020, -time), density_spring20)%>%
   select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p, density_s)
 
 
-#visualizations (annual fecundity as a function of perennial density (1), and annual density (2))
+#visualizations (seedling summer survival as a function of perennial density (1), and annual density (2))
 ggplot(dats, aes(x=density_a, y=fall20_s.g/spring20_s, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
               method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+              se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ xlab("Na(t)")+ylab("Ss")
 
 ggplot(dats, aes(x=density_p, y=fall20_s.g/spring20_s, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
@@ -278,7 +285,8 @@ ggplot(dats, aes(x=density_p, y=fall20_s.g/spring20_s, color=warmtrt)) +
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x),
               method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)
+              se = FALSE)+
+  scale_colour_manual(values = c("dodgerblue", "darkred")) + xlab("Np(t)")+ylab("Ss")
 
 seedling_sumsur <- brm(bf(fall20_s.g|trials(spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
                         sumsurS ~ warmtrt + (1|block), 
@@ -310,12 +318,15 @@ dat.surv
 
 # quick graphs of variables going into model
 ggplot(dat.surv, aes(x=seeded_s, y=spring20_s)) +
-  geom_jitter(aes(color=warmtrt), width=100)
+  geom_jitter(aes(color=warmtrt), width=100)+
+  geom_smooth(aes(color=warmtrt), method="lm", se=F)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ xlab("ns(t)")+ylab("Ns(t)")
 
 ggplot(dat.surv, aes(x=warmtrt, y=spring20_s/seeded_s)) +
   geom_boxplot()+
   # geom_point(color='blue') +
-  geom_jitter(width=.1) # 
+  geom_jitter(width=.1) +
+  scale_colour_manual(values = c("dodgerblue", "darkred"))
 
 # check replication within blocks
 table(dat.surv$warmtrt, dat.surv$block) # 3 per block
