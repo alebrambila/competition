@@ -42,7 +42,7 @@ seedling_sumsur2020<-select(vegplot, 18, 19, 10, 15, 16)%>%
   
 
 #create plotkey, used to match 
-
+plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
 
 #germination and survival
 spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
