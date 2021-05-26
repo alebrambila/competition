@@ -220,6 +220,9 @@ ggplot(datp, aes(x=density_a, y=out_p, color=warmtrt)) +
               se = FALSE)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("ns(t+1)")+xlab("Na(t)")
 
+table(datp$warmtrt, datp$block)
+datp$warmtrt <- as.factor(datp$warmtrt)
+
 perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*density_p), 
                         lambdaP ~ warmtrt + (1|block), 
                         alphaPA ~  warmtrt + (1|block), 
@@ -230,11 +233,12 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*density_a + alphaPP*dens
                                prior(normal(0, .1), nlpar = "alphaPA"),
                                prior(normal(0, .1), nlpar = "alphaPP")),
                      inits = "0",  
-                     cores=4, 
-                     chains=4,
+                     cores=3, 
+                     chains=3,
+                     refresh=100,
                      iter=10000, 
-                     thin=5,
-                     control = list(adapt_delta = 0.99, max_treedepth = 18))
+                     thin=2,
+                     control = list(adapt_delta = 0.97, max_treedepth = 15))
 
 savedPL<-perennial_lambda
 perennial_lambda
