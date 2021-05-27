@@ -382,7 +382,7 @@ seedling.ambient <- brm(bf(fall20_s.g|trials(seeded_s) ~ lambdaS / (1+alphaSA*se
                           alphaSS ~  (1|block), nl=TRUE),
                        family=binomial,
                        data = subset(seedlings, warmtrt=="amb"),
-                       prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaS"), 
+                       prior = c(prior(uniform(0, 1), lb=0, nlpar = "lambdaS"), 
                                  prior(normal(0, .1), nlpar = "alphaSA"),
                                  prior(normal(0, .1), nlpar = "alphaSS"),
                                  prior(normal(0, .1), nlpar = "alphaSP")),
