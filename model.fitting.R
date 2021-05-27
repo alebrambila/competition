@@ -79,8 +79,6 @@ conditional_effects(annual_lambda)
 dat.surv.a <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
   dplyr::select(-seeded_s, -spring20_s)%>%
   mutate(sprsur_a=spring20_a/seeded_a)
-
-dat.surv.a
 # quick graphs of variables going into model ----
 ggplot(dat.surv.a, aes(x=seeded_a, y=spring20_a)) +
   geom_jitter(aes(color=warmtrt), width=100)+
@@ -155,14 +153,14 @@ ggplot(annuals, aes(x=seeded_a, y=plotseeds, color=warmtrt)) +
                           alphaAA ~  warmtrt + (1|block), 
                           alphaAP ~  warmtrt + (1|block), nl=TRUE),
                        data = annuals,
-                       prior = c(prior(normal(200, 50), lb=0, nlpar = "lambdaA"), 
+                       prior = c(prior(normal(800, 200), lb=0, nlpar = "lambdaA"), 
                                  # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                  prior(normal(0, .1), nlpar = "alphaAA"),
                                  prior(normal(0, .1), nlpar = "alphaAP")),
                        inits = "0",  
                        cores=4, 
                        chains=4,
-                       iter=100000, 
+                       iter=10000, 
                        thin=5,
                        control = list(adapt_delta = 0.99, max_treedepth = 20))
 
@@ -171,25 +169,26 @@ plot(annual.simple)
 ### test to see why its not working?
 #just using the basic data, nambient only, no blocks
 annual.ambient <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                        lambdaA ~ 1,
-                        alphaAA ~  1, 
-                        alphaAP ~  1, nl=TRUE),
+                        lambdaA ~ (1|block),
+                        alphaAA ~  (1|block), 
+                        alphaAP ~  (1|block), nl=TRUE),
                      data = subset(annuals, warmtrt=="amb"),
-                     prior = c(prior(normal(50, 10), lb=0, nlpar = "lambdaA"), 
+                     prior = c(prior(normal(800, 200), lb=0, nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaAA"),
                                prior(normal(0, .1), nlpar = "alphaAP")),
                      inits = "0",  
                      cores=4, 
                      chains=4,
-                     iter=100000, 
-                     control = list(adapt_delta = 0.99, max_treedepth = 20))
+                     iter=10000, 
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
 
 ### ADULT PERENNIAL FECUNDITY ----
 datp<-left_join(fecundity_phyt_p, density_spring20)%>%
   mutate(out_p=seeds, density_a=am2, density_p=pm2)%>%
   select(1, 6, 7, 8, out_p, density_a, density_p)
-datp<-left_join(datp, dplyr::select(annuals, plotid, seeded_a))
+datp<-left_join(datp, dplyr::select(annuals, plotid, seeded_a))%>%
+  mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
 
 #visualizations----
 ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
@@ -207,7 +206,7 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*seeded_a + alphaPP*densi
                         lambdaP ~ warmtrt + (1|block), 
                         alphaPA ~  warmtrt + (1|block), 
                         alphaPP ~  warmtrt + (1|block), nl=TRUE),
-                     data = datp,
+                     data = subset(datp, warmtrt=="amb"),
                      prior = c(prior(normal(5000, 500), lb=0, nlpar = "lambdaP"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaPA"),

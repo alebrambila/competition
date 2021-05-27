@@ -29,6 +29,10 @@ vegplot<-read_csv("key_cover.csv")%>%
   mutate(time="spring2020")
 vegplot$comptrt <- factor(vegplot$comptrt, levels = c("none", "annuals", "seedling perennials", "adult perennials", "annuals+seedlings", "annuals+adults", "seedlings+adults"))
 
+### PLOTKEY ###
+plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
+
+
 vegplot2020<-select(vegplot, 18, 19, 1:12)
 vegplot2020[is.na(vegplot2020)] <- 0
 
@@ -39,9 +43,6 @@ density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time,
 #density_spring21 <- ### TO BE GATHERED IN JUNE 2021
 #am2, pm2 and sm2 are the relevant data here. 
 
-
-### PLOTKEY ###
-plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
 
 ### SUMMER SURVIVAL ###
 #create seedling_sumsur2020, calculation of seedling summer survival in 2020
