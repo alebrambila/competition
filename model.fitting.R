@@ -26,6 +26,7 @@ library(gridExtra)
     # We need it for the full model but it seems to be based on the strength of annual competition somehow
 
 
+#############################
 ##### ORIGINAL ANNUAL LAMBDA ----
 dat<-left_join(fecundity_phyt_a, density_spring20)%>%
   mutate(out_a=seeds, density_a=am2, density_p=pm2)%>%
@@ -75,12 +76,11 @@ fixef(annual_lambda)
 conditional_effects(annual_lambda)
 
 
+###################################
 ##### ORIGINALANNUAL SPRING SURVIVAL ----
 dat.surv.a <- sprsur2020a<-filter(spr_sur2020, seeded_a!=0)%>%  # just naming the data something different 
   dplyr::select(-seeded_s, -spring20_s)%>%
   mutate(sprsur_a=spring20_a/seeded_a)
-
-dat.surv.a
 # quick graphs of variables going into model ----
 ggplot(dat.surv.a, aes(x=seeded_a, y=spring20_a)) +
   geom_jitter(aes(color=warmtrt), width=100)+
@@ -136,7 +136,9 @@ f %>% ggplot(aes(x=treatment, y=probability))+
 
 
 
-###### SIMPLIFIED ANNUALS MODEL ----
+###############################
+## SIMPLIFIED ANNUALS MODEL ----
+## data ----
 annuals<-left_join(fecundity_plot_a, dplyr::select(dat.surv.a, 1,9))
 annuals<-left_join(annuals, plotkey)%>%
   mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 8, ifelse(comptrt=="adult perennials", 16, seeded_a)))%>%
@@ -144,11 +146,12 @@ annuals<-left_join(annuals, plotkey)%>%
 annuals<-left_join(annuals, density_spring20)
 
 #visualize ----
-ggplot(annuals, aes(x=seeded_a, y=plotseeds, color=warmtrt)) +
+ggplot(annuals, aes(x=seeded_a, y=log(plotseeds), color=warmtrt)) +
   geom_point(aes(shape=comptrt), width=1)+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("Na(t))")
 
+<<<<<<< HEAD
 # JD: look at data
 head(annuals); dim(annuals)
 # how many plots / block?  answer: 12
@@ -189,45 +192,71 @@ annuals$percap <- annuals$plotseeds/annuals$seeded_a
 #annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
   annual.simple <- brm(bf(percap ~ (lambdaA) / (1+alphaAA*seeded_a + alphaAP*pm2), 
                                                 lambdaA ~ warmtrt + (1|block), 
+=======
+### BRM fits ----
+  annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
+                          lambdaA ~ warmtrt + (1|block), 
+>>>>>>> 6339643fa1d615de5f831b40bd48251a4aa26134
                           alphaAA ~  warmtrt + (1|block), 
                           alphaAP ~  warmtrt + (1|block), nl=TRUE),
                        data = annuals,
-                       prior = c(prior(normal(200, 50), lb=0, nlpar = "lambdaA"), 
+                       prior = c(prior(normal(800, 200), lb=0, nlpar = "lambdaA"), 
                                  # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                  prior(normal(0, .1), nlpar = "alphaAA"),
                                  prior(normal(0, .1), nlpar = "alphaAP")),
                        inits = "0",  
                        cores=4, 
                        chains=4,
+<<<<<<< HEAD
                        iter=5000, 
+=======
+                       iter=10000, 
+>>>>>>> 6339643fa1d615de5f831b40bd48251a4aa26134
                        thin=5,
                        control = list(adapt_delta = 0.98, max_treedepth = 19))
 
 annual.simple
 plot(annual.simple)
 
-### test to see why its not working?
-#just using the basic data, nambient only, no blocks
+### ambient only
 annual.ambient <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                        lambdaA ~ 1,
-                        alphaAA ~  1, 
-                        alphaAP ~  1, nl=TRUE),
+                        lambdaA ~ (1|block),
+                        alphaAA ~  (1|block), 
+                        alphaAP ~  (1|block), nl=TRUE),
                      data = subset(annuals, warmtrt=="amb"),
-                     prior = c(prior(normal(50, 10), lb=0, nlpar = "lambdaA"), 
+                     prior = c(prior(normal(800, 200), lb=0, nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaAA"),
                                prior(normal(0, .1), nlpar = "alphaAP")),
                      inits = "0",  
                      cores=4, 
                      chains=4,
-                     iter=100000, 
-                     control = list(adapt_delta = 0.99, max_treedepth = 20))
+                     iter=10000, 
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
 
+### ambient only logged
+# example from hallett: 
+# m1A <- as.formula(log(AVseedout +1) ~ log(ag*(AVseedin+1)*exp(log(lambda)-log((1+aiE*(ERseedin+1)*eg+aiA*(AVseedin+1)*ag)))))
 
+annual.ambient <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) - log((1+alphaAA*(seeded_a+1) + alphaAP*(pm2+1))))), 
+                         lambdaA ~ (1|block),
+                         alphaAA ~  (1|block), 
+                         alphaAP ~  (1|block), nl=TRUE),
+                      data = subset(annuals, warmtrt=="amb"),
+                      prior = c(prior(normal(8, 2), lb=0, nlpar = "lambdaA"), 
+                                prior(normal(0, .1), nlpar = "alphaAA"),
+                                prior(normal(0, .1), nlpar = "alphaAP")),
+                      inits = "0",  
+                      cores=4, 
+                      chains=4,
+                      iter=10000, 
+                      control = list(adapt_delta = 0.99, max_treedepth = 18))
+################################
 ### ADULT PERENNIAL FECUNDITY ----
 datp<-left_join(fecundity_phyt_p, density_spring20)%>%
   mutate(out_p=seeds, density_a=am2, density_p=pm2)%>%
   select(1, 6, 7, 8, out_p, density_a, density_p)
-datp<-left_join(datp, dplyr::select(annuals, plotid, seeded_a))
+datp<-left_join(datp, dplyr::select(annuals, plotid, seeded_a))%>%
+  mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
 
 #visualizations----
 ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
@@ -252,7 +281,7 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP / (1+alphaPA*seeded_a + alphaPP*densi
                         lambdaP ~ warmtrt + (1|block), 
                         alphaPA ~  warmtrt + (1|block), 
                         alphaPP ~  warmtrt + (1|block), nl=TRUE),
-                     data = datp,
+                     data = subset(datp, warmtrt=="amb"),
                      prior = c(prior(normal(5000, 500), lb=0, nlpar = "lambdaP"), 
                                # prior(gamma(3, .01), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaPA"),
@@ -270,14 +299,14 @@ perennial_lambda
 plot(perennial_lambda)
 fixef(perennial_lambda)
 conditional_effects(perennial_lambda)
-
+#########################################
 ### ORIGINAL SEEDLING SUMMER SURVIVAL ----
 dats<-left_join(select(seedling_sumsur2020, -time), density_spring20)%>%
   mutate(density_a=am2, density_p=pm2, density_s=pm2)%>%
-  select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p, density_s)
+  select(1, 8, 9, 10, fall20_s.g, spring20_s, density_a, density_p, density_s)%>%
+  mutate(fall20_s.g=as.integer(fall20_s.g))
 
-
-#visualizations (seedling summer survival as a function of perennial density (1), and annual density (2))
+#visualizations----
 ggplot(dats, aes(x=density_a, y=fall20_s.g/spring20_s, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
   # geom_smooth(method = 'lm',formula = y ~ x + I(x^2))
@@ -296,6 +325,7 @@ ggplot(dats, aes(x=density_p, y=fall20_s.g/spring20_s, color=warmtrt)) +
               se = FALSE)+
   scale_colour_manual(values = c("dodgerblue", "darkred")) + xlab("Np(t)")+ylab("Ss")
 
+### BRM fits ----
 seedling_sumsur <- brm(bf(fall20_s.g|trials(spring20_s) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
                         sumsurS ~ warmtrt + (1|block), 
                         alphaSA ~  warmtrt + (1|block), 
@@ -315,8 +345,11 @@ seedling_sumsur <- brm(bf(fall20_s.g|trials(spring20_s) ~ sumsurS / (1+alphaSA*d
                      thin=5,
                      control = list(adapt_delta = 0.99, max_treedepth = 18))
 
+plot(seedling_sumsur)
+summary(seedling_sumsur)
 
 
+#######################################
 ### ORIGINAL SEEDLING SPRING SURVIVAL - is .34 in mordecai -----
 dat.surv <- sprsur2020s<-filter(spr_sur2020, seeded_s!=0)%>%  # just naming the data something different 
   dplyr::select(-seeded_a, -spring20_a)%>%
@@ -357,15 +390,10 @@ fixef(seedling_sprsur)
 conditional_effects(seedling_sprsur)
 
 
-### Final Params: seedling competitive effects
-# value from mordecai is .5, oddly much higher than other competitive effects in the model...?
-alpha_as=theta*alpha_aa
-alpha_ps=theta*alpha_pa
-
-theta~Uniform(0, 1)
 
 
 
+#############################################
 ## SIMPLIFIED SEEDLING (SEEDS IN, ADULTS OUT) ----
 seedlings<-left_join(dats, dplyr::select(dat.surv, plotid, seeded_s))%>%
   mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 8, ifelse(comptrt=="adult perennials", 16, seeded_s)))
@@ -379,7 +407,9 @@ ggplot(seedlings, aes(x=seeded_s, y=fall20_s.g, color=warmtrt)) +
   scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Np(t+1)")+xlab("Ns(t))")
 
 
-#BRM fit ----
+#BRM fits ----
+
+#normal----
 seedling.simple <- brm(bf(fall20_s.g ~ (lambdaS*seeded_s) / (1+alphaSA*seeded_a + alphaSP*density_p+ alphaSS*seeded_s), 
                         lambdaS ~ warmtrt + (1|block), 
                         alphaSA ~  warmtrt + (1|block), 
@@ -400,3 +430,49 @@ seedling.simple <- brm(bf(fall20_s.g ~ (lambdaS*seeded_s) / (1+alphaSA*seeded_a 
 
 plot(seedling.simple)
 
+#binomial ambient only----
+seedling.ambient <- brm(bf(fall20_s.g|trials(seeded_s) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+                          lambdaS ~ (1|block), 
+                          alphaSA ~  (1|block), 
+                          alphaSP ~  (1|block), 
+                          alphaSS ~  (1|block), nl=TRUE),
+                       family=binomial,
+                       data = subset(seedlings, warmtrt=="amb"),
+                       prior = c(prior(uniform(0, 1), lb=0, nlpar = "lambdaS"), 
+                                 prior(normal(0, .1), nlpar = "alphaSA"),
+                                 prior(normal(0, .1), nlpar = "alphaSS"),
+                                 prior(normal(0, .1), nlpar = "alphaSP")),
+                       inits = "0",  
+                       cores=4, 
+                       chains=4,
+                       iter=5000, 
+                       thin=5,
+                       control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+#binomial warmed only ----
+seedling.ambient <- brm(bf(fall20_s.g|trials(seeded_s) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+                           lambdaS ~ (1|block), 
+                           alphaSA ~  (1|block), 
+                           alphaSP ~  (1|block), 
+                           alphaSS ~  (1|block), nl=TRUE),
+                        family=binomial,
+                        data = subset(seedlings, warmtrt=="warm"),
+                        prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaS"), 
+                                  prior(normal(0, .1), nlpar = "alphaSA"),
+                                  prior(normal(0, .1), nlpar = "alphaSS"),
+                                  prior(normal(0, .1), nlpar = "alphaSP")),
+                        inits = "0",  
+                        cores=4, 
+                        chains=4,
+                        iter=5000, 
+                        thin=5,
+                        control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+
+
+### Final Params: seedling competitive effects ----
+# value from mordecai is .5, oddly much higher than other competitive effects in the model...?
+alpha_as=theta*alpha_aa
+alpha_ps=theta*alpha_pa
+
+theta~Uniform(0, 1)
