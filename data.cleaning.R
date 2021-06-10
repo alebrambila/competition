@@ -15,7 +15,7 @@ phytometers<-read_csv("phytometers.csv")%>%
 startingphyt<-read_csv("starting_plugs.csv")%>%
   mutate(sub=toupper(sub))
 
-### DENSITY ###
+### DENSITY ####
 ### Density is measured as cover and counts/m2.
 ### I need to correct counts to density per meter squared for some plots.  Full plots are 1m2 and 50:50 plots are .66m2. 
 vegplot<-read_csv("key_cover.csv")%>%
@@ -29,7 +29,7 @@ vegplot<-read_csv("key_cover.csv")%>%
   mutate(time="spring2020")
 vegplot$comptrt <- factor(vegplot$comptrt, levels = c("none", "annuals", "seedling perennials", "adult perennials", "annuals+seedlings", "annuals+adults", "seedlings+adults"))
 
-### PLOTKEY ###
+### PLOTKEY ####
 plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
 
 
@@ -44,7 +44,7 @@ density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time,
 #am2, pm2 and sm2 are the relevant data here. 
 
 
-### SUMMER SURVIVAL ###
+### SUMMER SURVIVAL ####
 #create seedling_sumsur2020, calculation of seedling summer survival in 2020
 seedling_sumsur2020<-select(vegplot, 18, 19, 10, 15, 16)%>%
   mutate(time="fall2020")%>%
@@ -62,7 +62,7 @@ sumsur2020s<-right_join(plotkey, seedling_sumsur2020)
 #sumsur2021s <- ### TO BE GATHERED JUNE AND SEPTEMBER 2021
 
 
-#### SPRING SURVIVAL ###
+#### SPRING SURVIVAL ####
 spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
   filter(comptrt!="none"&comptrt!="adult perennials")%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
@@ -83,7 +83,7 @@ sprsur2020s <-filter(spr_sur2020, seeded_s!=0)%>%
   mutate(sprsur_s=spring20_s/seeded_s)
 
 
-### FECUNDITY ###
+### FECUNDITY ####
 # to do - correct tillers to florets. this year I want to count seeds...
 # to be more accurate. germination is so low that i should. florets can maybe have >1 seed in them
 #read_csv("florets.csv")
@@ -114,69 +114,3 @@ fecundity_plot_a<-fecundity_plot #plot level
 fecundity_phyt_p <-filter(fecundity, type=="p") #phytometers
 
 
-### Old Visualizations
-#### Part 1: Phytometer growth and reproduction by competition and warming treatments ####
-
-#perennial growth (height)
-ggplot(subset(phytometers0, type=="p"), aes(y=growth, x=comptrt))+geom_boxplot(aes(fill=warmtrt))
-#perennial growth (circumference)
-ggplot(subset(phytometers0, type=="p"), aes(y=widening, x=comptrt))+geom_boxplot(aes(fill=warmtrt))
-#perennial reproduction
-ggplot(subset(phytometers0, type=="p"), aes(y=tillers, x=warmtrt))+geom_boxplot(aes(fill=warmtrt)) +facet_grid(~comptrt)
-
-#seedling size*diameter
-ggplot(subset(phytometers0, type=="s"), aes(y=veg_height*diameter, x=comptrt))+geom_boxplot(aes(fill=warmtrt))
-
-#annual height
-ggplot(subset(phytometers0, type=="a"), aes(y=veg_height, x=comptrt))+geom_boxplot(aes(fill=warmtrt))
-#annual rep
-ggplot(subset(phytometers0, type=="a"), aes(y=tillers, x=comptrt))+geom_boxplot(aes(fill=warmtrt))
-
-
-
-#### Part 2: Plot level count, tillers, survival(TODO) ####
-
-#seedling counts
-ggplot(subset(vegplot), aes(y=count_s, x=warmtrt))+geom_boxplot(aes(fill=warmtrt))+geom_jitter(width=.1, size=.5)+facet_wrap(~comptrt, scales="free")
-
-#annual counts
-ggplot(subset(vegplot), aes(y=count_a, x=warmtrt))+geom_boxplot(aes(fill=warmtrt))+geom_jitter(width=.1, size=.5)+facet_wrap(~comptrt, scales="free")
-
-#annual tillers
-ggplot(subset(vegplot), aes(y=til_a, x=warmtrt))+geom_boxplot(aes(fill=warmtrt))+geom_jitter(width=.1, size=.5)+facet_wrap(~comptrt, scales="free")
-
-
-#annual tillers
-ggplot(subset(vegplot), aes(y=til_p, x=warmtrt))+geom_boxplot(aes(fill=warmtrt))+geom_jitter(width=.1, size=.5)+facet_wrap(~comptrt, scales="free")
-
-
-### Part 3: Cover ####
-vegcov<-select(vegplot, 1:9)%>%
-  gather("type", "cover", per_s, per_p, per_a)
-
-
-ggplot(vegcov, aes(x=type, y=cover)) +geom_boxplot(aes(fill=warmtrt))+facet_wrap(~comptrt, scales="free")
-
-
-
-#aggregate survival
-#surival<-phytometers0%>%
-#  group_by(row, column, sub, block, warmtrt, comptrt, type)%>%
-#  summarize(survivors=n())%>%
-#  mutate(starters=NA)%>%
-#  mutate(starters=ifelse(comptrt=="a"&type=="a", 4,
-#                        ifelse(comptrt=="a"&type=="s", 4,
-#                               ifelse(comptrt=="a"&type=="p", 2,
-#                                     ifelse(comptrt=="s"&type=="s", 4,
-#                                           ifelse(comptrt=="s"&type=="a", 4,
-#                                                 ifelse(comptrt=="s"& type=="p", 2,
-#                                                       ifelse(comptrt=="n"& type=="a", 4,
-#                                                             ifelse(comptrt=="n"& type=="s" ,4,
-#                                                                   ifelse(comptrt=="n"& type=="p", 2,
-#                                                                         ifelse(comptrt=="p"& type=="a", 8,
-#                                                                               ifelse(comptrt=="p"& type=="s" ,8,
-#                                                                                     ifelse(comptrt=="p"& type=="p", 10, starters)))))))))))))%>%
-# mutate(survival=survivors/starters)
-
-#survival
-#ggplot(surival, aes(x=type, y=survival))+geom_boxplot(aes(fill=warmtrt))+facet_wrap(~comptrt)
