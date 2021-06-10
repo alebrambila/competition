@@ -293,7 +293,7 @@ annual.warmed <- brm(bf(percap ~ lambdaA*50 / (1 + alphaAA*seeded_a + alphaAP*pm
                       prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
                                 prior(normal(0, .1), nlpar = "alphaAA"),
                                 prior(normal(0, .1), nlpar = "alphaAP")),
-                      inits = "0",  
+                      #inits = "0",  
                       cores=3, 
                       chains=3,
                       iter=5000, 
@@ -318,14 +318,14 @@ annual.ambient <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) - 
                          alphaAA ~ 1+ (1|block), 
                          alphaAP ~ 1+  (1|block), nl=TRUE),
                       data = subset(annuals, warmtrt=="amb"),
-                      prior = c(prior(normal(8, 2), lb=0, nlpar = "lambdaA"), 
+                      prior = c(prior(normal(8, 3), lb=0, nlpar = "lambdaA"), 
                                 prior(normal(0, .1), nlpar = "alphaAA"),
                                 prior(normal(0, .1), nlpar = "alphaAP")),
                       inits = "0",  
                       cores=4, 
                       chains=4,
                       iter=5000, 
-                      control = list(adapt_delta = 0.99, max_treedepth = 18))
+                      control = list(adapt_delta = 0.95, max_treedepth = 16))
 
 
 # ambient only log scaled AND per-capita
