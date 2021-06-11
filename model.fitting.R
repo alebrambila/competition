@@ -219,6 +219,7 @@ datp<-left_join(datp, dplyr::select(annuals, plotid, seeded_a))%>%
 #visualizations----
 ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
+  # geom_smooth(color='red')+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("Np(t)")+ylab("ns(t+1)")
 
@@ -231,14 +232,16 @@ table(datp$warmtrt, datp$block)
 datp$warmtrt <- as.factor(datp$warmtrt)
 
 #Fit BRM scaled----
-perennial_lambda <- brm(bf(out_p ~ lambdaP*500 / (1+alphaPA*seeded_a + alphaPP*density_p), 
-                           lambdaP ~ warmtrt+ (1|block), 
-                           alphaPA ~  warmtrt+ (1|block), 
-                           alphaPP ~  warmtrt + (1|block), nl=TRUE),
+
+## try simple model first to get ballpark param estimates
+perennial_lambda0 <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p), 
+                           lambdaP ~ 1, 
+                           alphaPA ~  1, 
+                           alphaPP ~  1, nl=TRUE),
                         data = subset(datp),
                         prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
-                                  prior(normal(0, .1), nlpar = "alphaPA"),
-                                  prior(normal(0, .1), nlpar = "alphaPP")),
+                                  prior(normal(0, 1), nlpar = "alphaPA"), # broadedned the priors
+                                  prior(normal(0, 1), nlpar = "alphaPP")),
                         inits = "0",  
                         cores=3, 
                         chains=3,
@@ -246,10 +249,29 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP*500 / (1+alphaPA*seeded_a + alphaPP*d
                         iter=5000, 
                         thin=2,
                         control = list(adapt_delta = 0.99, max_treedepth = 18))
+perennial_lambda0
 
-savedPL<-perennial_lambda
+perennial_lambda <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p), # increased scale to 5000
+                           lambdaP ~ warmtrt + (1|block)
+                           ,alphaPA ~  warmtrt + (1|block)
+                           ,alphaPP ~  warmtrt + (1|block)
+                           ,nl=TRUE),
+                        data = subset(datp),
+                        prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
+                                  prior(normal(0, .2), nlpar = "alphaPA"),
+                                  prior(normal(0, .2), nlpar = "alphaPP")),
+                        inits = "0",  
+                        cores=3, 
+                        chains=3,
+                        refresh=200,
+                        iter=15000, 
+                        # thin=2
+                        # ,control = list(adapt_delta = 0.9, max_treedepth = 15)
+                        )
+
 perennial_lambda
 plot(perennial_lambda)
+savedPL<-perennial_lambda
 fixef(perennial_lambda)
 conditional_effects(perennial_lambda)
 
