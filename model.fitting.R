@@ -10,6 +10,9 @@ library(minpack.lm)
 library(grid)
 library(gridExtra)
 
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
 # This script is to estimate the parameters necessary to be able to perform invasion analysis and additional 
 # simulation of an annual (Lolium multiflorum) and perennial (Festuca roemeri) in competition at various densities.
 #  Here I estimate the inherent growth rates and competition coefficients in both warmed and ambient plots.
@@ -64,12 +67,12 @@ ggplot(annuals, aes(x=pm2, y=plotseeds, color=warmtrt)) +
   scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("pm2")
 
 ggplot(annuals, aes(x=pm2, y=percap, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt), width=.5)+
-  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)
+  geom_jitter(aes(shape=comptrt), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
+  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F) +xlab("perennial adults")+ylab("annual percapita seeds out")
 
 ggplot(annuals, aes(x=seeded_a, y=percap, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt), width=.5)+
-  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)
+  geom_jitter(aes(shape=comptrt), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
+  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+xlab("annual seeds in")+ylab("annual percapita seeds out")
 
 ggplot(annuals, aes(x=pm2, y=seeded_a, color=percap)) +
   geom_jitter(aes(shape=comptrt), height=50)+
@@ -98,7 +101,7 @@ annual.simple <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*p
                      inits = "0",  
                      cores=3, 
                      chains=3,
-                     iter=5000, 
+                     iter=20000, 
                      thin=1,
                      refresh=100,
                      control = list(adapt_delta = 0.99, max_treedepth = 19))
@@ -107,13 +110,39 @@ annual.simple
 plot(annual.simple)
 fixef(annual.simple)
 conditional_effects(annual.simple)
-#Estimate  Est.Error        Q2.5     Q97.5
+
+savedA<-annual.simple
+saveRDS(savedA, file="A.rds")
+saveda2<-readRDS("A.rds")
+
+                      #Estimate  Est.Error        Q2.5     Q97.5
 #lambdaA_Intercept   1.347888845 0.80285637  0.10719352 3.0985589
 #lambdaA_warmtrtwarm 1.276921926 0.79640360  0.08871119 3.0521205
 #alphaAA_Intercept   0.094774214 0.07575358 -0.08206542 0.2361547
 #alphaAA_warmtrtwarm 0.045046334 0.05187944 -0.04412825 0.1633287
 #alphaAP_Intercept   0.002265459 0.09962368 -0.19257535 0.1993172
 #alphaAP_warmtrtwarm 0.002278204 0.10084321 -0.19424138 0.1978026
+
+get_variables(savedA)
+nd <- tibble(warmtrt = c("amb","warm"), block=NA, seeded_a=1, pm2=1)
+n_iter<-100
+
+fitted(savedA,newdata = nd, summary = TRUE ) %>%
+  as_tibble() 
+
+f <-
+  fitted(savedA,
+         newdata  = nd,
+         summary = F,
+         nsamples = n_iter) %>% 
+  as_tibble() %>%
+  rename(amb = V1, warm=V2) %>%
+  pivot_longer(cols=amb:warm, names_to="treatment", values_to="probability")
+f
+
+f %>% ggplot(aes(x=treatment, y=probability))+
+  stat_pointinterval(.width = c(.66, .95))
+
 
 ### ambient only percapita scaled
 annual.ambient <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), 
@@ -137,10 +166,13 @@ annual.ambient
 plot(annual.ambient)
 fixef(annual.ambient)
 #Population-Level Effects: 
-#  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+                     #  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
 #lambdaA_Intercept     1.31      0.81     0.08     3.10 1.00     3709     2257
 #alphaAA_Intercept     0.00      0.10    -0.19     0.20 1.00     5606     4914
 #alphaAP_Intercept     0.00      0.10    -0.20     0.20 1.00     6195     4395
+
+
+
 
 ### warmed only percapita scaled
 annual.warmed <- brm(bf(percap ~ lambdaA*50 / (1 + alphaAA*seeded_a + alphaAP*pm2), 
@@ -163,7 +195,7 @@ annual.warmed
 plot(annual.warmed)
 fixef(annual.warmed)
 #Population-Level Effects: 
-#  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+                     #  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
 #lambdaA_Intercept     1.30      0.81     0.07     3.13 1.00     4096     2225
 #alphaAA_Intercept     0.00      0.10    -0.20     0.21 1.00     6502     4999
 #alphaAP_Intercept     0.00      0.10    -0.20     0.19 1.00     7385     4939
@@ -221,12 +253,12 @@ ggplot(datp, aes(x=density_p, y=out_p, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
   # geom_smooth(color='red')+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("Np(t)")+ylab("ns(t+1)")
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("Np(t)")+ylab("ns(t+1)")+ labs(x="adult perennial density", y="adult perennial fecundity")
 
 ggplot(datp, aes(x=seeded_a, y=out_p, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt))+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("ns(t+1)")+xlab("Na(t)")
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("ns(t+1)")+xlab("Na(t)")+ labs(x="annual seeds in", y="adult perennial fecundity")
 
 table(datp$warmtrt, datp$block)
 datp$warmtrt <- as.factor(datp$warmtrt)
@@ -250,6 +282,10 @@ perennial_lambda0 <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP
                         thin=2,
                         control = list(adapt_delta = 0.99, max_treedepth = 18))
 perennial_lambda0
+plot(perennial_lambda0)
+conditional_effects(perennial_lambda0)
+
+
 
 perennial_lambda <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p), # increased scale to 5000
                            lambdaP ~ warmtrt + (1|block)
@@ -261,19 +297,22 @@ perennial_lambda <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*
                                   prior(normal(0, .2), nlpar = "alphaPA"),
                                   prior(normal(0, .2), nlpar = "alphaPP")),
                         inits = "0",  
-                        cores=3, 
-                        chains=3,
-                        refresh=200,
-                        iter=15000, 
+                        cores=4, 
+                        chains=4,
+                        refresh=100,
+                        iter=20000, 
                         # thin=2
-                        # ,control = list(adapt_delta = 0.9, max_treedepth = 15)
+                       #  ,control = list(adapt_delta = 0.99, max_treedepth = 17)
                         )
 
 perennial_lambda
 plot(perennial_lambda)
 savedPL<-perennial_lambda
+saveRDS(savedPL, file="PL.rds")
+savedpl2<-readRDS("PL.rds")
 fixef(perennial_lambda)
 conditional_effects(perennial_lambda)
+
 
 #############################################
 ## SIMPLIFIED SEEDLING (SEEDS IN, ADULTS OUT) ----
@@ -291,12 +330,25 @@ seedlings<-left_join(seedlings, dplyr::select(annuals, plotid, seeded_a))%>%
   mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
 
 #vizualisation ----
-ggplot(seedlings, aes(x=seeded_s, y=fall20_s.g, color=warmtrt)) +
+ggplot(seedlings, aes(x=seeded_s, y=fall20_s.g/seeded_s, color=warmtrt)) +
   geom_point(aes(shape=comptrt))+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("seeded perennials")+ylab("seedling survival")
+
+ggplot(seedlings, aes(x=density_p, y=fall20_s.g/seeded_s, color=warmtrt)) +
+  geom_point(aes(shape=comptrt))+
+  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("adult perennial density")+ylab("seedling survival")
+
+ggplot(seedlings, aes(x=seeded_a, y=fall20_s.g/seeded_s, color=warmtrt)) +
+  geom_point(aes(shape=comptrt))+
+  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("seeded annuals")+ylab("seedling survival")
+
+ggplot(seedlings, aes(x=fall20_s.g/seeded_s, fill=warmtrt)) +
+  geom_histogram(position="dodge")+facet_wrap(~warmtrt)#+
+  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Np(t+1)")+xlab("Ns(t))")
-
-
 #BRM fits ----
 
 #binomial----
@@ -307,17 +359,28 @@ seedling.binomial<- brm(bf(fall20_s.g|trials(seeded_s) ~ lambdaS / (1+alphaSA*se
                            alphaSS ~  warmtrt+ (1|block), nl=TRUE),
                         family=binomial,
                         data = subset(seedlings),
-                        prior = c(prior(uniform(0, .1), lb=0, nlpar = "lambdaS"), 
+                        prior = c(prior(normal(0, .5), lb=0, nlpar = "lambdaS"), 
                                   prior(normal(0, .1), nlpar = "alphaSA"),
                                   prior(normal(0, .1), nlpar = "alphaSS"),
                                   prior(normal(0, .1), nlpar = "alphaSP")),
                         inits = "0",  
                         cores=4, 
                         chains=4,
-                        iter=5000, 
+                        iter=10000, 
                         thin=5,
-                        control = list(adapt_delta = 0.99, max_treedepth = 18))
-#binomial ambient only----
+                        control = list(adapt_delta = 0.9, max_treedepth = 15))
+)
+  seedling.binomial
+  plot(seedling.binomial)
+  conditional_effects(seedling.binomial)
+  
+  savedPS<-seedling.binomial
+  saveRDS(savedPS, file="PS.rds")
+  savedps2<-readRDS("PS.rds")
+  
+  get_variables(savedPS)
+  
+savedPS#binomial ambient only----
 seedling.ambient <- brm(bf(fall20_s.g|trials(seeded_s) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
                            lambdaS ~ (1|block), 
                            alphaSA ~  (1|block), 
