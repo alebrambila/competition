@@ -51,9 +51,12 @@ seedling_sumsur2020<-select(vegplot, 18, 19, 10, 15, 16)%>%
   filter(!is.na(count_s), gopher_ss_correction!=1, count_s!=0)%>%
   mutate(spring20_s=count_s, fall20_s=`20fall_s`)%>%
   mutate(fall20_s.g=fall20_s/(1-gopher_ss_correction))%>% # adjust summer survival for the proportion of the plot that was damaged by gophers
+  mutate(spring20_s.g=spring20_s*(1-gopher_ss_correction))%>% # adjust summer survival for the proportion of the plot that was damaged by gophers
   select(-count_s, `20fall_s`)%>%
   mutate(fall20_s.g=ifelse(fall20_s.g>spring20_s, spring20_s, fall20_s.g))%>% #in some cases my adjustment above put fall>spring, this is to max out at 100% survival
-  mutate(sumsur=fall20_s.g/spring20_s)
+  mutate(spring20_s.g=ifelse(spring20_s.g<fall20_s, fall20_s, spring20_s.g))%>% #in some cases my adjustment above put fall>spring, this is to max out at 100% survival
+  
+    mutate(sumsur=fall20_s.g/spring20_s)
 
 ### Seedling summer survival: 
 # phytometers and background within each plot
@@ -66,7 +69,7 @@ sumsur2020s<-right_join(plotkey, seedling_sumsur2020)
 spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
   filter(comptrt!="none"&comptrt!="adult perennials")%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
-         ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
+                         ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
   mutate(seeded_a=ifelse(comptrt=="annuals", 244*6, # from online lit: 3.2-5g/1000 seeds
                          ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 244*2, 0)))%>%
   mutate(spring20_s=count_s, spring20_a=count_a)%>%
