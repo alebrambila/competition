@@ -70,8 +70,8 @@ spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
   filter(comptrt!="none"&comptrt!="adult perennials")%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
                          ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
-  mutate(seeded_a=ifelse(comptrt=="annuals", 244*6, # from online lit: 3.2-5g/1000 seeds
-                         ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 244*2, 0)))%>%
+  mutate(seeded_a=ifelse(comptrt=="annuals", 310*6, # from online lit: 3.2-5g/1000 seeds
+                         ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 310*2, 0)))%>%
   mutate(spring20_s=count_s, spring20_a=count_a)%>%
   select(-count_s, -count_a)
 
@@ -100,14 +100,14 @@ phytometers1<-left_join(phytometers, select(startingphyt, -date))%>%
 fecundity<-select(phytometers1, plotid, type, id, tillers)%>% 
   filter(type!="s")%>%
   filter(!is.na(tillers))%>%
-  mutate(seeds=ifelse(type=="a", tillers*30*14, tillers*30*5.5)) #lolium: 30 spikelets w/ up to 8-20 florets, festuca 4-7/spikelet
+  mutate(seeds=ifelse(type=="a", tillers*18*10.6, tillers*25.5*6)) #lolium: 30 spikelets w/ up to 8-20 florets, festuca 25 spikelets with 6 florets
 rm(phytometers1)
 
 
 fecundity_plot<-select(vegplot, plotid, time, count_a, til_a)%>%
   filter(count_a>0)%>%
   mutate(pc_til=til_a/count_a)%>%
-  mutate(seeds=pc_til*30*10)
+  mutate(seeds=pc_til*18*10.6) #annuals
 
 # annual seed production per capita
 fecundity_phyt_a <- filter(fecundity, type=="a") # phytometers
