@@ -64,18 +64,18 @@ annuals %>% group_by(block) %>%
 table(annuals$warmtrt, annuals$block)
 
 # per capita
-ggplot(annuals, aes(x=pm2, y=percap, color=warmtrt)) +
+ggplot(subset(annuals), aes(x=pm2, y=percap, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F) +xlab("perennial adults")+ylab("annual percapita seeds out")
 
-ggplot(annuals, aes(x=seeded_a, y=percap, color=warmtrt)) +
+ggplot(subset(annuals), aes(x=seeded_a, y=percap, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
   geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+xlab("annual seeds in")+ylab("annual percapita seeds out")
 
 #added in seedling perennials (not sure it's going to be helpful)
-ggplot(annuals, aes(x=seeded_s, y=percap, color=warmtrt)) +
+ggplot(subset(annuals, seeded_a>150), aes(x=seeded_s, y=percap, color=warmtrt)) +
   geom_jitter(aes(shape=comptrt), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
-  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+xlab("perennial seeds in")+ylab("annual percapita seeds out")
+  geom_smooth(method = 'lm',formula = y ~ x , se=F)+xlab("perennial seeds in")+ylab("annual percapita seeds out")
 
 #ggplot(annuals, aes(x=pm2, y=seeded_a, color=percap)) +
 #  geom_jitter(aes(shape=comptrt), height=50)+
@@ -83,41 +83,43 @@ ggplot(annuals, aes(x=seeded_s, y=percap, color=warmtrt)) +
 
 ### BRM fits ----
 ## 1.1 Simple (seeds in:out) annuals percapita and scaled
-annual.simple <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                        lambdaA ~ warmtrt + (1|block), 
-                        alphaAA ~  warmtrt + (1|block), 
-                        alphaAP ~  warmtrt + (1|block), 
-                        alphaAS ~  warmtrt + (1|block), #added term for seedling competitive effect
-                        nl=TRUE),
-                     data = annuals,
+annual.simple <- brm(bf(as.integer(percap) ~ lambdaA*30 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
+                        lambdaA ~ warmtrt + (1|block), # only lambda vary by warmtrt
+                        alphaAA + alphaAP + alphaAS ~ 1 + (1|block), #just one overall alpha, simplify!
+                        nl=TRUE), 
+                     data = subset(annuals),
+                     family = poisson, #poisson or negative binomial
                      prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                               prior(normal(.1, .1), nlpar = "alphaAA"),
-                               prior(normal(.1, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
-                               prior(normal(.1, .1), nlpar = "alphaAP")),
+                               prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAA"),
+                               prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAS"),  #added term for seedling competitive effect
+                               prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAP")),
                      inits = "0",  
                      cores=4, 
                      chains=4,
-                     iter=10000, 
+                     iter=20000, 
                      thin=1,
                      refresh=100,
-                     control = list(adapt_delta = 0.99, max_treedepth = 18))
+                     control = list(adapt_delta = 0.99, max_treedepth = 16))
 
 
 annual.simple
 plot(annual.simple)
 fixef(annual.simple)
 
-#oddly these points dont seem to match up with the prediction (they do in model 2.1 perennial fecundity, dont know what I did differently)
+stancode(annual.simple)
+
+#points are matching prediction now, still seeing a weird trade off between predictability of alpha and lambda when warmed. 
+#try only letting lambda change with warming
 conditional_effects(annual.simple, effects = "seeded_a:warmtrt")%>% plot(points=T) 
 conditional_effects(annual.simple, effects = "pm2:warmtrt")%>% plot(points=T)
+conditional_effects(annual.simple, effects = "seeded_s:warmtrt")%>% plot(points=T)
 
 conditional_effects(annual.simple)
 
-savedA<-annual.simple
-#saveRDS(savedA, file="A.rds") #use this when I have a good run to save it as a file, can add date to filename
-#readA<-readRDS("A.rds") #you should be able to pull in the latest fit of this model that I have gotten to work with this line.  
+saveRDS(annual.simple, file="A062921.rds") #use this when I have a good run to save it as a file, can add date to filename
+readA<-readRDS("A.rds") #you should be able to pull in the latest fit of this model that I have gotten to work with this line.  
 
-### 1.2 Simple annuals logscaled
+### 1.2 Simple annuals logscaled ----
 # example from hallett: m1A <- as.formula(log(AVseedout +1) ~ log(ag*(AVseedin+1)*exp(log(lambda)-log((1+aiE*(ERseedin+1)*eg+aiA*(AVseedin+1)*ag)))))
 annual.logscale <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) - log((1+alphaAA*(seeded_a+1) + alphaAP*(pm2+1)+ alphaAS*(sm2+1))))), 
                              lambdaA ~ warmtrt+(1|block),
@@ -132,7 +134,7 @@ annual.logscale <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) -
                           inits = "0",  
                           cores=4, 
                           chains=4,
-                          iter=5000, 
+                          iter=10000, 
                           control = list(adapt_delta = 0.95, max_treedepth = 16))
 savedAL<-annual.logscale
 #saveRDS(savedAL, file="AL.rds")
@@ -388,7 +390,7 @@ seedling.binomial<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*se
   #savedps2<-readRDS("PS.rds")
   
 ### 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1) ----
-  sprsur.binomial<- brm(bf(spring20_s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+  sprsur.binomial<- brm(bf(spring_20s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
                              sprsurS ~ warmtrt+ (1|block), 
                              alphaSA ~  warmtrt+ (1|block), 
                              alphaSP ~  warmtrt+ (1|block), 
@@ -412,9 +414,12 @@ seedling.binomial<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*se
   plot(sprsur)
   fixef(sprsur)
   conditional_effects(sprsur)
+  
+ # saveRDS(sprsur.binomial, file="SPR.rds")
+  #savedspr<-readRDS("SPR.rds")
 
 ### 3.3 Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1) ----
-sumsur <- brm(bf(fall20_s|trials(spring20_s.g) ~ sumsurS / (1+alphaSA*density_a + alphaSS*density_s + alphaSP*density_p), 
+sumsur <- brm(bf(fall20_s|trials(spring20_s.g) ~ sumsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
                             sumsurS ~ warmtrt + (1|block), 
                             alphaSA ~  warmtrt + (1|block), 
                             alphaSP ~  warmtrt + (1|block), 
@@ -435,7 +440,8 @@ sumsur <- brm(bf(fall20_s|trials(spring20_s.g) ~ sumsurS / (1+alphaSA*density_a 
   plot(seedling_sumsur)
   summary(seedling_sumsur)
   
-  
+  saveRDS(sumsur, file="SUM.rds")
+  savedsum<-readRDS("SUM.rds")
 
   
   
