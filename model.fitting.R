@@ -20,13 +20,13 @@ source('data.cleaning.R')
 
 #Models 
 # 1.1 Simple (seeds in:out) annuals percapita and scaled
-# 1.2 Simple annuals logscaled
-# 1.3 Simple annuals percapita & logscaled
+# 1.2 (skip) Simple annuals logscaled 
+# 1.3 (skip) Simple annuals percapita & logscaled
 # 2.1 Perennial fecundity scaled
-# 2.2 Perennial fecundity logscaled
+# 2.2 (skip) Perennial fecundity logscaled
 # 3.1 Simple (seeds in:adults out) perennial seedlings binomial
-# 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1)
-# 3.3 Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1)
+# 3.2 (skip) pring (seeds in:stems out) perennial seedlings binomial (first half of 3.1)
+# 3.3 (skip) Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1)
 
 
 ###### 1. SIMPLE ANNUALS: SEEDS-IN:SEEDS-OUT ----
@@ -83,12 +83,12 @@ ggplot(subset(annuals, seeded_a>150), aes(x=seeded_s, y=percap, color=warmtrt)) 
 
 ### BRM fits ----
 ## 1.1 Simple (seeds in:out) annuals percapita and scaled
-annual.simple <- brm(bf(as.integer(percap) ~ lambdaA*30 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                        lambdaA ~ warmtrt + (1|block), # only lambda vary by warmtrt
+annual.simple.a <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
+                        lambdaA ~ 1 + (1|block), # only lambda vary by warmtrt
                         alphaAA + alphaAP + alphaAS ~ 1 + (1|block), #just one overall alpha, simplify!
                         nl=TRUE), 
-                     data = subset(annuals),
-                     family = poisson, #poisson or negative binomial
+                     data = subset(annuals, warmtrt=="amb"),
+                     family = poisson, #poisson distribution based on lina's suggestion.
                      prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
                                prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAA"),
                                prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAS"),  #added term for seedling competitive effect
@@ -99,27 +99,37 @@ annual.simple <- brm(bf(as.integer(percap) ~ lambdaA*30 / (1 + alphaAA*seeded_a 
                      iter=20000, 
                      thin=1,
                      refresh=100,
-                     control = list(adapt_delta = 0.99, max_treedepth = 16))
+                     control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+annual.simple.w <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
+                          lambdaA ~ 1 + (1|block), # only lambda vary by warmtrt
+                          alphaAA + alphaAP + alphaAS ~ 1 + (1|block), 
+                          nl=TRUE), 
+                       data = subset(annuals, warmtrt=="warm"),
+                       family = poisson, 
+                       prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
+                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAA"),
+                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAS"),  #added term for seedling competitive effect
+                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAP")),
+                       inits = "0",  
+                       cores=4, 
+                       chains=4,
+                       iter=20000, 
+                       thin=1,
+                       refresh=100,
+                       control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+#save both ambient and warmed
+saveRDS(annual.simple, file="A063021a.rds") #use this when I have a good run to save it as a file, can add date to filename
+saveRDS(annual.simple, file="A063021w.rds") #use this when I have a good run to save it as a file, can add date to filename
+
+#read back in ambient and warmed from most recent saved file
+annual.warm.model<-readRDS("A063021w.rds")
+annual.amb.model<-readRDS("A063021a.rds")
 
 
-annual.simple
-plot(annual.simple)
-fixef(annual.simple)
 
-stancode(annual.simple)
-
-#points are matching prediction now, still seeing a weird trade off between predictability of alpha and lambda when warmed. 
-#try only letting lambda change with warming
-conditional_effects(annual.simple, effects = "seeded_a:warmtrt")%>% plot(points=T) 
-conditional_effects(annual.simple, effects = "pm2:warmtrt")%>% plot(points=T)
-conditional_effects(annual.simple, effects = "seeded_s:warmtrt")%>% plot(points=T)
-
-conditional_effects(annual.simple)
-
-saveRDS(annual.simple, file="A062921.rds") #use this when I have a good run to save it as a file, can add date to filename
-readA<-readRDS("A.rds") #you should be able to pull in the latest fit of this model that I have gotten to work with this line.  
-
-### 1.2 Simple annuals logscaled ----
+### 1.2 Simple annuals logscaled (SKIP)----
 # example from hallett: m1A <- as.formula(log(AVseedout +1) ~ log(ag*(AVseedin+1)*exp(log(lambda)-log((1+aiE*(ERseedin+1)*eg+aiA*(AVseedin+1)*ag)))))
 annual.logscale <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) - log((1+alphaAA*(seeded_a+1) + alphaAP*(pm2+1)+ alphaAS*(sm2+1))))), 
                              lambdaA ~ warmtrt+(1|block),
@@ -185,6 +195,8 @@ ggplot(datp, aes(x=seeded_a, y=out_p, color=warmtrt)) +
   labs(x="annual seeds in", y="adult perennial fecundity")
 
 table(datp$warmtrt, datp$block)
+table(datp$warmtrt, datp$comptrt)
+
 datp$warmtrt <- as.factor(datp$warmtrt)
 
 #Fit BRM----
@@ -209,37 +221,45 @@ datp$warmtrt <- as.factor(datp$warmtrt)
 #conditional_effects(perennial_lambda0)
 
 ### 2.1 Perennial fecundity scaled
-perennial.lambda <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p), # increased scale to 5000
-                           lambdaP ~ warmtrt + (1|block),
-                           alphaPA ~  warmtrt + (1|block),# didnt add seedling competition on adults, dont think it would help
-                           alphaPP ~  warmtrt + (1|block),
+perennial.lambda <- brm(bf(out_p+1 ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p)+1, # increased scale to 5000
+                           lambdaP ~ 1 + (1|block),
+                           alphaPA ~  1 + (1|block),# didnt add seedling competition on adults, dont think it would help here
+                           alphaPP ~  1 + (1|block),
                            nl=TRUE),
-                        data = subset(datp),
-                        prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
-                                  prior(normal(0, .2), nlpar = "alphaPA"),
-                                  prior(normal(0, .2), nlpar = "alphaPP")),
-                        inits = "0",  
+                        family=poisson, # switched to poisson
+                        data = subset(datp, warmtrt=="amb"),
+                        prior = c(prior(normal(1, .5), lb=0, nlpar = "lambdaP"), 
+                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPA"), # added bounds to the priors
+                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPP")),
+                       # inits = "0",  
                         cores=4, 
                         chains=4,
                         refresh=100,
-                        iter=20000, 
-                        # thin=2
-                       #  ,control = list(adapt_delta = 0.99, max_treedepth = 17)
+                        iter=10000, 
+                         thin=3
+                        ,control = list(adapt_delta = 0.99, max_treedepth = 16)
                         )
+#plw1<-perennial.lambda
+#stancode(perennial.lambda)
+#perennial.lambda
+#plot(perennial.lambda)
+#fixef(perennial.lambda)
+#conditional_effects(readPL)%>% plot(points=T)
+#conditional_effects(readPL, effects = "seeded_a:warmtrt")%>% plot(points=T)
+#conditional_effects(readPL, effects = "density_p:warmtrt")%>% plot(points=T)
 
-perennial.lambda
-plot(perennial.lambda)
+#the closes to a decent fit i've gotten so far, can't replicate it when I do the annual and warmed seperately. 
+readPL<-readRDS("PL.rds") 
 
-fixef(perennial.lambda)
-conditional_effects(perennial.lambda)%>% plot(points=T)
-conditional_effects(perennial.lambda, effects = "seeded_a:warmtrt")%>% plot(points=T)
-conditional_effects(perennial.lambda, effects = "density_p:warmtrt")%>% plot(points=T)
 
-savedPL<-perennial.lambda
-#saveRDS(savedPL, file="PL.rds")
-#readPL<-readRDS("PL.rds")
+saveRDS(perennial.lambda.w, file="PL070121w.rds")
+saveRDS(perennial.lambda.a, file="PL070121a.rds")
 
-### 2.2 Perennial fecundity logscaled
+adult.warm.model<-readRDS("PL070121w.rds")
+adult.amb.model<-readRDS("PL070121a.rds") #this is ambient fitted alone, way lower ESS?
+
+
+### 2.2 Perennial fecundity logscaled ----
 perennial.lambda.logscale <- brm(bf(log(1+out_p) ~ log(exp(log(lambdaP) - log((1+alphaPA*(seeded_a+1) + alphaPP*(density_p+1))))),
                            lambdaP ~ warmtrt + (1|block),
                            alphaPA ~  warmtrt + (1|block),# didnt add seedling competition on adults, dont think it would help
@@ -274,11 +294,12 @@ savedPLL<-perennial.lambda.logscale
 #data ----
 
 dat.sprsurv.0 <- left_join(plotkey, spr_sur2020)%>%  # just naming the data something different 
-  dplyr::select(-seeded_a, -spring20_a, -seeded_s)
-dat.sprsurv.00<-left_join(dat.sprsurv.0, dplyr::select(annuals, plotid, seeded_a, seeded_s))%>%
+  dplyr::select(-seeded_a, -spring20_a)
+dat.sprsurv.00<-left_join(dat.sprsurv.0, dplyr::select(annuals, plotid, seeded_a))%>%
   mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="seedlings+adults", 0, seeded_a))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
-  mutate(seeded_s=ifelse(comptrt=='seedling perennials', 4500, ifelse(comptrt=="seedlings+adults", 1500, seeded_s))) %>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
-  dplyr::select(1, 2, 3, 4, 10, 11)
+    mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="annuals+adults", 0, seeded_s))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
+      mutate(seeded_s=ifelse(comptrt=='seedling perennials', 4500, ifelse(comptrt=="seedlings+adults", 1500, seeded_s))) %>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
+  dplyr::select(1, 2, 3, 4, 9, 10, 11)
 dat.sprsurv.000<-left_join(dat.sprsurv.00, select(datp, plotid, density_p))%>%
   mutate(density_p=ifelse(is.na(density_p), 0, density_p))
 dat.sprsurv<-left_join(dat.sprsurv.000, select(density_spring20, plotid, count_s))%>%
@@ -286,9 +307,9 @@ dat.sprsurv<-left_join(dat.sprsurv.000, select(density_spring20, plotid, count_s
   select(-count_s)
 dat.sprsurv<-unique(dat.sprsurv)
 
-dat.sumsurv<-left_join(dat.sprsurv, select(seedling_sumsur2020, plotid, fall20_s, fall20_s.g, spring20_s,spring20_s.g, gopher_ss_correction))%>%
+dat.sumsurv<-left_join(select(dat.sprsurv, -spring20_s), select(seedling_sumsur2020, plotid, fall20_s, fall20_s.g, spring20_s,spring20_s.g, gopher_ss_correction))%>%
   mutate(fall20_s.g=as.integer(fall20_s.g), spring20_s.g=as.integer(spring20_s.g))%>%
-  filter(!is.na(spring20_s))%>%
+  #filter(!is.na(spring20_s))%>%
   mutate(seeded_s.g=seeded_s*(1-gopher_ss_correction), seeded_a.g=seeded_a*(1-gopher_ss_correction)) # adjust seed addition for down for gophers 
 dat.sumsurv<-unique(dat.sumsurv)
 
@@ -298,13 +319,13 @@ dat.sumsurv<-unique(dat.sumsurv)
 # data with subset(data, seeded_s>150).  this can be removed to see full data but proportions may be misleading
 
 #seeds:adults vs. seeds
-ggplot(subset(dat.sumsurv, seeded_s>150), aes(x=seeded_s.g, y=fall20_s/seeded_s.g, color=warmtrt)) +
+ggplot(subset(dat.sumsurv, seeded_s>100), aes(x=seeded_s.g, y=fall20_s/seeded_s.g, color=warmtrt)) +
   geom_point(aes(shape=comptrt))+
   geom_smooth(method = 'lm', se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("seeded perennials")+ylab("seed:adult survival rate")
 
 #seeds:adults vs. perennials
-ggplot(subset(dat.sumsurv, seeded_s>150), aes(x=density_p, y=fall20_s/seeded_s.g, color=warmtrt)) +
+ggplot(subset(dat.sumsurv, seeded_s>100), aes(x=density_p, y=fall20_s/seeded_s.g, color=warmtrt)) +
   geom_point(aes(shape=comptrt))+
   geom_smooth(method = 'lm', se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+xlab("adult perennial density")+ylab("seed:adult survival rate")
@@ -356,40 +377,56 @@ ggplot(subset(dat.sumsurv, seeded_s>150), aes(x=seeded_a, y=fall20_s/spring20_s.
 
 
 ### 3.1 Simple (seeds in:adults out) perennial seedlings binomial ----
-seedling.binomial<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                           lambdaS ~ warmtrt+ (1|block), 
-                           alphaSA ~  warmtrt+ (1|block), 
-                           alphaSP ~  warmtrt+ (1|block), 
-                           alphaSS ~  warmtrt+ (1|block), nl=TRUE),
+seedling.binomial.a<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+                           lambdaS +alphaSA +alphaSP+alphaSS~ 1+ (1|block), nl=TRUE),
                         family=binomial,
-                        data = subset(dat.sumsurv, seeded_s>150),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                        prior = c(prior(normal(0, .5), lb=0, nlpar = "lambdaS"), 
-                                  prior(normal(0, .1), nlpar = "alphaSA"),
-                                  prior(normal(0, .1), nlpar = "alphaSS"),
-                                  prior(normal(0, .1), nlpar = "alphaSP")),
+                        data = subset(dat.sumsurv, seeded_s>150&warmtrt=="amb"),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
+                        prior = c(prior(normal(.015, .015), lb=0, nlpar = "lambdaS"), 
+                                  prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSA"),
+                                  prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSS"),
+                                  prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSP")),
                         inits = "0",  
                         cores=4, 
                         chains=4,
-                        iter=10000, 
+                        iter=15000, 
                         thin=5,
-                        control = list(adapt_delta = 0.9, max_treedepth = 15))
+                        control = list(adapt_delta = 0.9, max_treedepth = 18))
 )
 
-  seedling.binomial
-  plot(seedling.binomial)
-  conditional_effects(seedling.binomial)
-  
-  savedPS<-seedling.binomial
-  
-  get_variables(savedPS)
-  conditional_effects(savedPS)%>% plot(points=T) # I am getting errors when I try to see conditional effects of the binomial model.  It says that it is exporting 
-  conditional_effects(savedPS, conditions = data.frame(trials = 100), effects = "seeded_a:warmtrt")%>% plot(points=T)
-  conditional_effects(savedPS, effects = "density_p:warmtrt")%>% plot(points=T)
-  plot(conditional_effects(savedPS, conditions = data.frame(trials = 10)), points = T)
+seedling.binomial.w<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+                             lambdaS +alphaSA +alphaSP+alphaSS~ 1+ (1|block), nl=TRUE),
+                          family=binomial,
+                          data = subset(dat.sumsurv, seeded_s>150&warmtrt=="warm"),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
+                          prior = c(prior(normal(.015, .015), lb=0, nlpar = "lambdaS"), 
+                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSA"),
+                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSS"),
+                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSP")),
+                          inits = "0",  
+                          cores=4, 
+                          chains=4,
+                          iter=15000, 
+                          thin=5,
+                          control = list(adapt_delta = 0.9, max_treedepth = 18))
+)
+
+savedps2<-readRDS("PS.rds") #previous best, model w/ warmed and ambient
+
+saveRDS(seedling.binomial.a, file="PS070321a")
+saveRDS(seedling.binomial.w, file="PS070321w")
+
+seedling.a<-readRDS("PS070321a")
+seedling.w<-readRDS("PS070321w")
+
+
+
+ # conditional_effects(savedps2)%>% plot(points=T) # I am getting errors when I try to see conditional effects of the binomial model.  It says that it is exporting 
+#  conditional_effects(savedPS, conditions = data.frame(trials = 100), effects = "seeded_a:warmtrt")%>% plot(points=T)
+#  conditional_effects(savedPS, effects = "density_p:warmtrt")%>% plot(points=T)
+#  plot(conditional_effects(savedPS, conditions = data.frame(trials = 10)), points = T)
   #saveRDS(savedPS, file="PS.rds")
-  #savedps2<-readRDS("PS.rds")
+ # savedps2<-readRDS("PS.rds")
   
-### 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1) ----
+### 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1) (SKIP - DIDNT SEEM LIKE 3.2 or 3.3 added much)----
   sprsur.binomial<- brm(bf(spring_20s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
                              sprsurS ~ warmtrt+ (1|block), 
                              alphaSA ~  warmtrt+ (1|block), 
