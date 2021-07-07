@@ -6,7 +6,7 @@ par<-c("b_lambdaA_Intercept", "b_alphaAA_Intercept", "b_alphaAP_Intercept", "b_a
 par0<-c("b_lambdaA_Intercept", "b_lambdaA_warmtrtwarm", "b_alphaAA_Intercept", "b_alphaAP_Intercept", "b_alphaAS_Intercept")
 par1<-c("b_lambdaA_Intercept", "b_lambdaA_warmtrtwarm", "b_alphaAA_Intercept","b_alphaAA_warmtrtwarm", "b_alphaAP_Intercept","b_alphaAP_warmtrtwarm", "b_alphaAS_Intercept", "b_alphaAS_warmtrtwarm")
 
-annual0 <- posterior_summary(annual.model, pars=par0, probs = c(0.025, 0.975), robust = FALSE)
+annual0 <- posterior_summary(A, pars=par0, probs = c(0.025, 0.975), robust = FALSE)
 annual<-as.tibble(annual0)%>%
   mutate(parameters=rownames(annual0)) %>%
   separate(parameters, sep="_", into=c("b", "par", "trt"))
@@ -51,31 +51,31 @@ seedling.amb  <- posterior_summary( annual.amb.model, probs = c(0.025, 0.975), r
 adult.warm <- posterior_summary(annual.warm.model, probs = c(0.025, 0.975), robust = FALSE)
 adult.amb  <- posterior_summary( annual.amb.model, probs = c(0.025, 0.975), robust = FALSE)
 
-lambdaAa<- annual.amb[]
-lambdaAw<- annual.warm[]
-lambdaSa<- seedling.amb[]
-lambdaSw<- seedling.warm[]
-lambdaPa<- adult.amb []
-lambdaPw<- adult.warm[]
+lambdaAa<- 1.30#annual.amb[]
+lambdaAw<- 1.54#annual.warm[]
+lambdaSa<- .019#seedling.amb[]
+lambdaSw<- .019#seedling.warm[]
+lambdaPa<- 1.46#adult.amb []
+lambdaPw<- 1.73#adult.warm[]
   
-alphaAAa<- annual.amb[]
-alphaAAw<- annual.warm[]
-alphaASa<- annual.amb[]
-alphaASw<- annual.warm[]
-alphaAPa<- annual.amb[]
-alphaAPw<- annual.warm[]
+alphaAAa<- .12#annual.amb[]
+alphaAAw<- .28#annual.warm[]
+alphaASa<- .08#annual.amb[]
+alphaASw<- .05#annual.warm[]
+alphaAPa<- .10#annual.amb[]
+alphaAPw<- .10#annual.warm[]
   
-alphaPAa<- adult.amb []
-alphaPAw<- adult.warm []
-alphaPPa<- adult.amb []
-alphaPPw<- adult.warm []
+alphaPAa<- .0012#adult.amb []
+alphaPAw<- .0022#adult.warm []
+alphaPPa<- .0 #adult.amb []
+alphaPPw<- .17 #adult.warm []
   
-alphaSAa<- seedling.amb[]
-alphaSAw<- seedling.warm[]
-alphaSSa<- seedling.amb[]
-alphaSSw<- seedling.warm[]
-alphaSPa<- seedling.amb[]
-alphaSPw<- seedling.warm[]
+alphaSAa<- .032#seedling.amb[]
+alphaSAw<- .011#seedling.warm[]
+alphaSSa<- .0042#seedling.amb[]
+alphaSSw<- .0012#seedling.warm[]
+alphaSPa<- .097#seedling.amb[]
+alphaSPw<- .094#seedling.warm[]
   
 
 # ------------------------------------------------------------------------------------
@@ -86,8 +86,8 @@ ga <- 100 #gundel 2007, gundel 2006
 ga <- .97 #lin 2018
 
 sp <- 1 # 100% adults survive observed in field - x in literature
-sp <-.99 # or 2.5% fiegner 2007
-ss <- 
+sp <-.975 # or 2.5% fiegner 2007
+ss <- .0
 gs <- .63 # fiegner 2007
 gs <- .90 # schmidt 1998
 gs <- .31 # maret 2005
@@ -101,41 +101,39 @@ gs <- .50 # mackin 2021
 # Determine equilibrium conditions for lolium seeds - to run for only a single timestep
 annual.equilibrium <- function (N0a, sa, ga, alphaAA, lambdaA) { #number of annuals, seed survival annuals, germination annuals, self alpha, annual lambda
   Na <- sa*(1-ga)*N0a + N0a*lambdaA*100/(1+alphaAA*N0a) #predicted lambda is scaled, match scaling here 100, 30??
-  return(N)
+  return(Na)
 }
 
 # Determine equilibrium conditions for festuca adults
 adult.equilibrium <- function (N0p, N0s, sp, alphaSS, alphaSP, lambdaS) { # n adults, n seedlings, self seedling alpha, adult on seedling alpha, seedling survival to adult
   Np <- sp*N0p + N0s*lambdaS/(1 + alphaSS*N0s + alphaSP*N0p) 
-  return(N)
+  return(Np)
 }
 
 # Determine equilibrium conditions for festuca seeds
 seedling.equilibrium <- function (N0p, N0s, ss, gs, alphaPP, lambdaP) { # n adult n seedling, seedling survival, germination seedling, self and adult alphas, adult seed production
   Ns <- ss*(1-gs)*N0s + N0p*(lambdaP*5000)/(1 + alphaPP*N0p)
-  return(N)
+  return(Ns)
 }
 
 
-
-#annual invading perennials
-
-# annual invader one time step forward
+#competition growth:
+# annuals
 annual.invade <- function  (N0a, N0p, N0s, sa, ga, alphaAA, alphaAS, alphaAP, lambdaA){
-  Na <- sa*(1-ga)*N0a + N0a*lambdaA*100/(1+alphaAS*N0s+alphaAP*N0p)
-  return(N)
+  Na <- sa*(1-ga)*N0a + N0a*lambdaA*100/(1+alphaAS*N0s+alphaAP*N0p+alphaAA*N0a)
+  return(Na)
 }
 
-# seedling one step forward
-seedling.resident <- function (N0p, N0a, ss, gs, alphaPP, alphaPA, lambdaP) {
+# seedlings
+seedling.resident <- function (N0p, N0a, N0s, ss, gs, alphaPP, alphaPA, lambdaP) {
   Ns <- ss*(1-gs)*N0s + N0p*(lambdaP*5000)/(1 + alphaPP*N0p+ alphaPA*N0a)  
-  return(N)
+  return(Ns)
 }
 
-# adult one step forward
+# adults
 adult.resident <- function (N0p, N0s, N0a, sp, alphaSS, alphaSP, alphaSA,lambdaS) {
   Np <- sp*N0p + N0s*lambdaS/(1 + alphaSS*N0s + alphaSP*N0p+ alphaSA*N0a) 
-  return(N)
+  return(Np)
 }
 
 
@@ -143,7 +141,7 @@ adult.resident <- function (N0p, N0s, N0a, sp, alphaSS, alphaSP, alphaSA,lambdaS
 # ------------------------------------------------------------------------------------
 # run equilibriums
 
-time <- 1:50
+time <- 1:300
 tmax=max(time)
 
 # annuals
@@ -155,14 +153,14 @@ eq.annuals.a[1,2] = as.numeric(N0a)
 
 
 for (t in 1:tmax) {
-  eq.annuals.a[t+1] <- pop.equilibrium(eq.annuals[t], sa, ga, alphaAAa, lambdaAa)
+  eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAa, lambdaAa)
 }
 
 eq.annuals.w<- tibble(time, a)
-eq.annuals.w[1] <- N0a
+eq.annuals.w[1,2] <- N0a
 
 for (t in 1:tmax) {
-  eq.annuals.w[t+1] <- pop.equilibrium(eq.annuals[t], sa, ga, alphaAAw, lambdaAw)
+  eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAw, lambdaAw)
 }
 
 
@@ -178,115 +176,142 @@ eq.perennials.a<-tibble(time, p, s)
 eq.perennials.a[1,3] <- N0s
 eq.perennials.a[1,2] <- N0p
 
-for (t in 1:tmax) {
-  eq.perennials.a[t+1, 2] <- pop.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], sp, alphaSSa, lambdaSa)
-  eq.perennials.a[t+1, 3] <- pop.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], ss, gs, alphaSSa, alphaSPa, lambdaPa)
+for (t in 1:300) {
+  eq.perennials.a[t+1, 2] <- adult.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], sp, alphaSSa, alphaSPa, lambdaSa)
+  eq.perennials.a[t+1, 3] <- seedling.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], ss, gs, alphaPPa, lambdaPa)
 }
+
 
 #warm
 eq.perennials.w<-tibble(time, p, s)
 eq.perennials.w[1,3] <- N0s
 eq.perennials.w[1,2] <- N0p
 
-for (t in 1:tmax) {
-  eq.perennials.w[t+1, 2] <- pop.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], sp, alphaSSw, lambdaSw)
-  eq.perennials.w[t+1, 3] <- pop.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], ss, gs, alphaSSw, alphaSPw, lambdaPw)
+for (t in 1:300) {
+  eq.perennials.w[t+1, 2] <- adult.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], sp, alphaSSw, alphaSPa, lambdaSw)
+  eq.perennials.w[t+1, 3] <- seedling.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], ss, gs, alphaPPw, lambdaPw)
 }
 
+
+
 # check outputs
-plot lines for each 
+annual.eq<-rbind(mutate(eq.annuals.a, temp="amb"), mutate(eq.annuals.w, temp="warm"))
+perennial.eq<-rbind(mutate(eq.perennials.a, temp="amb"), mutate(eq.perennials.w, temp="warm"))%>%
+  gather("type", "density", p, s)%>%
+  mutate(type=ifelse(type=="p", "adult", "seedling"))
+
+eqp1<-ggplot(annual.eq, aes(time, a, color=temp))+ geom_line()+ylab("annual seed density")+  scale_colour_manual(values = c("dodgerblue", "darkred"))
+eqp2<-ggplot(perennial.eq, aes(time, (density), color=temp, linetype=type, shape=type))+ geom_line()+ylab("perennial density")+scale_y_continuous(trans='log10', labels = scales::comma)+  scale_colour_manual(values = c("dodgerblue", "darkred"))
+
+ggarrange(eqp1, eqp2)
 
 # ------------------------------------------------------------------------------------
 # invasion
 
 # annual into perennials 
 #ambient
-annual.invasion.a <- tibble(time, a, s, p)
+annual.invasion.a <- tibble(time, a, p, s)
 annual.invasion.a[1,2] <- 1 #annuals
-annual.invasion.a[1,3] <- eq.perennials.a[tmax,2] #adults at eq
-annual.invasion.a[1,4] <- eq.perennials.a[tmax,3] #seedlings at eq
+annual.invasion.a[1,3] <- eq.perennials.a[300,2] #adults at eq
+annual.invasion.a[1,4] <- eq.perennials.a[300,3] #seedlings at eq
 
 
-for (t in tmax) {
-  avena_invasion.a[t+1, 2] <- annual.invade(N0a=annual.invasion.a[t,2],
-                                    N0p=annual.invasion.a[t,3],
-                                    N0s=annual.invasion.a[t,4], 
+for (t in 1:tmax) {
+  annual.invasion.a[t+1, 2] <- annual.invade(N0a=annual.invasion.a[t,2],
+                                             N0p=annual.invasion.a[t,3],N0s=annual.invasion.a[t,4],
                                     sa, ga, alphaAAa, alphaASa, alphaAPa, lambdaAa)
-  avena_invasion.a[t+1, 3] <- seedling.resident(N0a=annual.invasion.a[t,2],
-                                      N0p=annual.invasion.a[t,3],
+  annual.invasion.a[t+1, 4] <- seedling.resident(N0a=annual.invasion.a[t,2],
+                                      N0p=annual.invasion.a[t,3],N0s=annual.invasion.a[t,4],
                                       ss, gs, alphaPPa, alphaPAa, lambdaPa)
-  avena_invasion.a[t+1, 4] <- adult.resident(N0a=annual.invasion.a[t,2],
+  annual.invasion.a[t+1, 3] <- adult.resident(N0a=annual.invasion.a[t,2],
                                       N0p=annual.invasion.a[t,3],
                                       N0s=annual.invasion.a[t,4], 
                                       sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
-}
-
+  }
 
 #warmed
-annual.invasion.w <- tibble(time, a, s, p)
+annual.invasion.w <- tibble(time, a, p, s)
 annual.invasion.w[1,2] <- 1
-annual.invasion.w[1,3] <- eq.perennials.w[tmax,2] #adults at eq
-annual.invasion.w[1,4] <- eq.perennials.w[tmax,3] #seedlings at eq
+annual.invasion.w[1,3] <- eq.perennials.w[300,2] #adults at eq
+annual.invasion.w[1,4] <- eq.perennials.w[300,3] #seedlings at eq
 
-for (t in tmax) {
-  avena_invasion.w[t+1, 2] <- annual.invade(N0a=annual.invasion.a[t,2],
-                                            N0p=annual.invasion.a[t,3],
-                                            N0s=annual.invasion.a[t,4], 
-                                            sa, ga, alphaAAw, alphaASw, alphaAPw, lambdaAw)
-  avena_invasion.w[t+1, 3] <- seedling.resident(N0a=annual.invasion.a[t,2],
-                                                N0p=annual.invasion.a[t,3],
-                                                ss, gs, alphaPPw, alphaPAw, lambdaPw)
-  avena_invasion.w[t+1, 4] <- adult.resident(N0a=annual.invasion.a[t,2],
-                                             N0p=annual.invasion.a[t,3],
-                                             N0s=annual.invasion.a[t,4], 
-                                             sp, alphaSSw, alphaSPw, alphaSAw, lambdaSw)
+for (t in 1:tmax) {
+  annual.invasion.w[t+1, 2] <- annual.invade(N0a=annual.invasion.w[t,2],
+                                             N0p=annual.invasion.w[t,3],N0s=annual.invasion.w[t,4],
+                                             sa, ga, alphaAAw, alphaASw, alphaAPw, lambdaAw)
+  annual.invasion.w[t+1, 4] <- seedling.resident(N0a=annual.invasion.w[t,2],
+                                                 N0p=annual.invasion.w[t,3],N0s=annual.invasion.w[t,4],
+                                                 ss, gs, alphaPPw, alphaPAw, lambdaPw)
+  annual.invasion.w[t+1, 3] <- adult.resident(N0a=annual.invasion.w[t,2],
+                                              N0p=annual.invasion.w[t,3],
+                                              N0s=annual.invasion.w[t,4], 
+                                              sp, alphaSSw, alphaSPw, alphaSAw, lambdaSw)
 }
-
 
 
 # perennials into annuals
 
 #ambient
-perennial.invasion.a <- tibble(time, a, s, p)
+perennial.invasion.a <- tibble(time, a, p, s)
 perennial.invasion.a[1,2] <-  eq.annuals.a[tmax,2] #annuals at eq
-perennial.invasion.a[1,3] <- 1
-perennial.invasion.a[1,4] <- .1
+perennial.invasion.a[1,3] <- .1
+perennial.invasion.a[1,4] <- 1
 
 
-for (t in tmax) {
-  perennial.invasion.a[t+1, 2] <- annual.invade(N0a=annual.invasion.a[t,2],
-                                            N0p=annual.invasion.a[t,3],
-                                            N0s=annual.invasion.a[t,4], 
-                                            sa, ga, alphaAAa, alphaASa, alphaAPa, lambdaAa)
-  perennial.invasion.a[t+1, 3] <- seedling.resident(N0a=annual.invasion.a[t,2],
-                                                N0p=annual.invasion.a[t,3],
-                                                ss, gs, alphaPPa, alphaPAa, lambdaPa)
-  perennial.invasion.a[t+1, 4] <- adult.resident(N0a=annual.invasion.a[t,2],
-                                             N0p=annual.invasion.a[t,3],
-                                             N0s=annual.invasion.a[t,4], 
-                                             sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
+for (t in 1:tmax) {
+  perennial.invasion.a[t+1, 2] <- annual.invade(N0a=perennial.invasion.a[t,2],
+                                                N0p=perennial.invasion.a[t,3],N0s=perennial.invasion.a[t,4],
+                                                sa, ga, alphaAAa, alphaASa, alphaAPa, lambdaAa)
+  perennial.invasion.a[t+1, 4] <- seedling.resident(N0a=perennial.invasion.a[t,2],
+                                                    N0p=perennial.invasion.a[t,3],N0s=perennial.invasion.a[t,4],
+                                                    ss, gs, alphaPPa, alphaPAa, lambdaPa)
+  perennial.invasion.a[t+1, 3] <- adult.resident(N0a=perennial.invasion.a[t,2],
+                                                N0p=perennial.invasion.a[t,3],
+                                                N0s=perennial.invasion.a[t,4], 
+                                                sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
 }
 
-
 #warmed
-perennial.invasion.w <- tibble(time, a, s, p)
+perennial.invasion.w <- tibble(time, a, p, s)
 perennial.invasion.w[1,2] <-  eq.annuals.w[tmax,2] #annuals at eq
-perennial.invasion.w[1,3] <- 1
-perennial.invasion.w[1,4] <- .1
+perennial.invasion.w[1,3] <- .1
+perennial.invasion.w[1,4] <- 1
 
 
-for (t in tmax) {
-  perennial.invasion.w[t+1, 2] <- annual.invade(N0a=annual.invasion.w[t,2],
-                                                N0p=annual.invasion.w[t,3],
-                                                N0s=annual.invasion.w[t,4], 
-                                                sa, ga, alphaAAa, alphaASa, alphaAPa, lambdaAa)
-  perennial.invasion.w[t+1, 3] <- seedling.resident(N0a=annual.invasion.w[t,2],
-                                                    N0p=annual.invasion.w[t,3],
-                                                    ss, gs, alphaPPa, alphaPAa, lambdaPa)
-  perennial.invasion.w[t+1, 4] <- adult.resident(N0a=annual.invasion.w[t,2],
-                                                 N0p=annual.invasion.w[t,3],
-                                                 N0s=annual.invasion.w[t,4], 
-                                                 sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
+for (t in 1:tmax) {
+  perennial.invasion.w[t+1, 2] <- annual.invade(N0a=perennial.invasion.w[t,2],
+                                                N0p=perennial.invasion.w[t,3],N0s=perennial.invasion.w[t,4],
+                                                sa, ga, alphaAAw, alphaASw, alphaAPw, lambdaAw)
+  perennial.invasion.w[t+1, 4] <- seedling.resident(N0a=perennial.invasion.w[t,2],
+                                                    N0p=perennial.invasion.w[t,3],N0s=perennial.invasion.w[t,4],
+                                                    ss, gs, alphaPPw, alphaPAw, lambdaPw)
+  perennial.invasion.w[t+1, 3] <- adult.resident(N0a=perennial.invasion.w[t,2],
+                                                 N0p=perennial.invasion.w[t,3],
+                                                 N0s=perennial.invasion.w[t,4], 
+                                                 sp, alphaSSw, alphaSPw, alphaSAw, lambdaSw)
+}
+  
+
+#visualize
+
+# check outputs
+annual.inv<-rbind(mutate(annual.invasion.a, temp="amb"), mutate(annual.invasion.w, temp="warm"))%>%
+  gather("type", "density", a, p, s)%>%
+  mutate(type=ifelse(type=="p", "adult", ifelse(type=="s", "seedling", "annual")))
+
+
+perennial.inv<-rbind(mutate(perennial.invasion.a, temp="amb"), mutate(perennial.invasion.w, temp="warm"))%>%
+  gather("type", "density", a, p, s)%>%
+  mutate(type=ifelse(type=="p", "adult", ifelse(type=="s", "seedling", "annual")))
+
+inv1<-ggplot(subset(annual.inv, time<6), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
+geom_line()+ylab("density")+scale_y_continuous(trans='log10')
+inv2<-ggplot(subset(perennial.inv, time<6), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
+geom_line()#+ylab("density")+scale_y_continuous(trans='log10')
+
+ggarrange(inv1, inv2)
+
+
   # pars contains the following parameters (subscript 1 is the annual, 2 and 3 are the perennial seedling and adult, respectively):
   # g1, g2 = germination fraction
   # lambda1, lambda3 = seed production in the absence of competition
