@@ -3,8 +3,6 @@ library(brms)
 library(tidybayes)
 library(patchwork)
 
-
-
 ### ### ### ### ### ### ### ### 
 ## Bev-Holt ----
 ### ### ### ### ### ### ### ### 
@@ -139,4 +137,34 @@ dat %>%
 
 # Here's the issue: model is good, predicts data well.   But can't just use the parameter estimates from the poisson model, at least not the alpha; the lambda looks ok with a exp() transformation.  
 # How to transform the alpha then?
+
+
+
+# other way to make predictions and plot ----
+dat.new <- expand.grid(
+  density_data = seq(0,30, length.out=50)
+)
+
+pred.gaussian <- 
+  as.data.frame(predict(fit1, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new) 
+
+pred.poisson <- 
+  as.data.frame(predict(fit1.pois, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new) 
+
+pred.all <- pred.gaussian %>% 
+  mutate(poisson = pred.poisson$Estimate)
+head(pred.all); dim(pred.all)
+pred.all <- pred.all %>% rename(gaussian = Estimate) %>%
+  pivot_longer(cols=c(gaussian, poisson), names_to="model", values_to = "fitness")
+pred.all
+
+a <- pred.all %>%  ggplot(aes(x = density_data, y = fitness)) + 
+  geom_line(aes(linetype=model)) + 
+  geom_jitter(data=dat, aes(x=density_data, y=fitness_data))+
+  ylab("fitness")+
+  theme_minimal()
+a
+
 
