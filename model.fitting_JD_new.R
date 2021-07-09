@@ -106,19 +106,19 @@ ggsave(filename="annuals.explore3.pdf", width=9, height=4)
 ## 1.1 Simple (seeds in:out) annuals percapita and scaled
 
 # scale seeded_a
-annuals.backup <- annuals
+# annuals.backup <- annuals
 annuals <- mutate(annuals, seeded_a=seeded_a/1000)
 hist(annuals$seeded_a)
 
-annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), # + alphaAS*seeded_s 
-                        lambdaA ~ warmtrt + (1|block),
-                        alphaAA + alphaAP  ~ warmtrt + (1|block), #+ alphaAS
+annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s),
+                        lambdaA ~ warmtrt , #+ (1|block),
+                        alphaAA + alphaAP + alphaAS ~ warmtrt,# + (1|block), #
                         nl=TRUE), 
                      data = annuals,
                      family = gaussian, #poisson, 
-                     prior = c(prior(normal(1, .3), nlpar = "lambdaA"), 
+                     prior = c(prior(normal(1, 1), nlpar = "lambdaA"), 
                                prior(normal(0, .1), nlpar = "alphaAA"),
-                               # prior(normal(0, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
+                               prior(normal(0, .1), nlpar = "alphaAS"), 
                                prior(normal(0, .1), nlpar = "alphaAP")),
                      inits = "0",  
                      cores=4, 
@@ -168,7 +168,9 @@ annual.simple.gaussian<-readRDS("annual.simple.gaussian.rds")
 
 # predict over pm2
 dat.new.annual <- expand.grid(
-  seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
+  seeded_a = max(annuals$seeded_a, na.rm=TRUE)
+  # seeded_a = 0
+  # seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
   # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
   ,pm2 = seq(0,10, length.out=20)
   ,warmtrt = c("amb","warm")
@@ -304,6 +306,10 @@ cc <- annuals %>%  ggplot(aes(x = seeded_a, y = percap, color=warmtrt)) +
                                                           # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
                                                           "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
   )) +
+  geom_function(fun=bev1, color='blue', size=1.5, args=c("lam"=100*param.warm.gaus$value[3], "AA"=param.warm.gaus$value[1], 
+                                                        # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+                                                        "AP"=param.warm.gaus$value[2], "N_P"=mean(annuals$pm2)
+  )) +
   # geom_function(fun=bev1, color='blue', size=1.5, args=c("lam"=45, "AA"=param.amb.gaus$value[1], 
   #                                                         # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
   #                                                         "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
@@ -313,6 +319,22 @@ cc <- annuals %>%  ggplot(aes(x = seeded_a, y = percap, color=warmtrt)) +
 cc
 # 
 # Looks like estimate for AA is way off
+
+pred.annual %>%  ggplot(aes(x = pm2, y = percap_pred, color=warmtrt)) + 
+  geom_line(aes(linetype=model)) + 
+  geom_jitter(data=annuals, aes(x=pm2, y=percap))+
+  geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=100*param.amb.gaus$value[3], "AA"=param.amb.gaus$value[1], 
+                                                        # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+                                                        "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
+  )) +
+  geom_function(fun=bev1, color='blue', size=1.5, args=c("lam"=100*param.warm.gaus$value[3], "AA"=param.warm.gaus$value[1], 
+                                                         # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+                                                         "AP"=param.warm.gaus$value[2], "N_P"=mean(annuals$pm2)
+  )) +
+  ylab("Per capita fecundity")+
+  theme_pander()
+#
+
 
 annual.simple.gaussian
 plot(annual.simple.gaussian)
@@ -330,9 +352,9 @@ annuals.backup <- annuals
 annuals <- mutate(annuals, seeded_a=seeded_a/1000)
 hist(annuals$seeded_a)
 
-annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a), # + alphaAS*seeded_s 
-                                 lambdaA ~ warmtrt + (1|block),
-                                 alphaAA ~ warmtrt + (1|block), #+ alphaAS
+annual.gaussian.1var <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a), # + alphaAS*seeded_s 
+                                 lambdaA ~ warmtrt, #+ (1|block),
+                                 alphaAA ~ warmtrt, #+ (1|block), #+ alphaAS
                                  nl=TRUE), 
                               data = annuals,
                               family = gaussian, #poisson, 
@@ -348,12 +370,12 @@ annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a), 
                               refresh=100,
                               control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-annual.simple.gaussian
-saveRDS(annual.simple.gaussian, file="annual.simple.gaussian.rds")
+annual.gaussian.1var
+saveRDS(annual.gaussian.1var, file="annual.gaussian.1var.rds")
 
 ### poisson fit ----
 ## 1.1 Simple (seeds in:out) annuals percapita and scaled
-annual.simple.poisson <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a  ), # + alphaAP*pm2+ alphaAS*seeded_s
+annual.poisson.1var <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a  ), # + alphaAP*pm2+ alphaAS*seeded_s
                                 lambdaA ~ warmtrt + (1|block),
                                 alphaAA ~ warmtrt + (1|block), # + alphaAS
                                 nl=TRUE), 
@@ -371,10 +393,10 @@ annual.simple.poisson <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*
                              refresh=100,
                              control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-annual.simple.poisson
-fixef(annual.simple.poisson)
+annual.poisson.1var
+fixef(annual.poisson.1var)
 # annual.simple.poisson <- annual.simple   # backed up before running normal model to see if the issue is the log link
-saveRDS(annual.simple.poisson, file="annual.simple.poisson.rds")
+saveRDS(annual.poisson.1var, file="annual.poisson.1var.rds")
 
 conditional_effects(annual.simple.poisson, points=TRUE)
 
@@ -382,32 +404,9 @@ conditional_effects(annual.simple.poisson, points=TRUE)
 
 ## predict and plot ----
 
-annual.simple.poisson<-readRDS("annual.simple.poisson.rds")
-annual.simple.gaussian<-readRDS("annual.simple.gaussian.rds")
+annual.poisson.1var <-readRDS("annual.poisson.1var.rds")
+annual.gaussian.1var <-readRDS("annual.gaussian.1var.rds")
 
-
-# predict over pm2
-dat.new.annual <- expand.grid(
-  seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
-  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
-  # ,pm2 = seq(0,10, length.out=20)
-  ,warmtrt = c("amb","warm")
-)
-
-pred.annual.gaussian <- 
-  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
-  cbind(dat.new.annual) 
-
-pred.annual.poisson <- 
-  as.data.frame(predict(annual.simple.poisson, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
-  cbind(dat.new.annual) 
-
-pred.annual <- pred.annual.gaussian %>% 
-  mutate(poisson = pred.annual.poisson$Estimate)
-head(pred.annual); dim(pred.annual)
-pred.annual <- pred.annual %>% rename(gaussian = Estimate) %>%
-  pivot_longer(cols=c(gaussian, poisson), names_to="model", values_to = "percap_pred")
-pred.annual
 
 
 # predict over seeded_a
@@ -420,11 +419,11 @@ dat.new.annual <- expand.grid(
 )
 
 pred.annual.gaussian <- 
-  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  as.data.frame(predict(annual.gaussian.1var, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.annual) 
 
 pred.annual.poisson <- 
-  as.data.frame(predict(annual.simple.poisson, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  as.data.frame(predict(annual.poisson.1var, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.annual) 
 
 pred.annual <- pred.annual.gaussian %>% 
@@ -445,9 +444,9 @@ c
 
 ## Get parameters ----
 
-get_variables(annual.simple.gaussian)
+get_variables(annual.gaussian.1var)
 
-fit.annuals.table.gaussian <- annual.simple.gaussian %>%
+fit.annuals.table.gaussian <- annual.gaussian.1var %>%
   spread_draws(`b_.*`, regex = TRUE) %>% 
   mutate(
     lam_amb=b_lambdaA_Intercept,
@@ -504,6 +503,178 @@ cc
 
 
 
+## !!!! Version with only Ambient, single covariate ----
+
+
+### gaussian fit ----
+## 1.1 Simple (seeds in:out) annuals percapita and scaled
+
+# scale seeded_a
+hist(annuals$seeded_a)
+
+annuals_amb <- filter(annuals, warmtrt == "amb")
+
+ggplot(annuals_amb, aes(x=seeded_a, y=percap))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap(~block)
+
+
+ggpairs(select(annuals_amb, seeded_a, percap))
+
+annual.1var.amb.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a), # + alphaAS*seeded_s 
+                                 lambdaA ~ 1#  (1|block),
+                                 ,alphaAA ~ 1#(1|block), #+ alphaAS
+                                 ,nl=TRUE), 
+                              data = annuals_amb,
+                              family = gaussian, #poisson, 
+                              prior = c(prior(normal(1, 1), nlpar = "lambdaA"), 
+                                        prior(normal(0, .1), nlpar = "alphaAA")),
+                              # prior(normal(0, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
+                              # prior(normal(0, .1), nlpar = "alphaAP")),
+                              inits = "0",  
+                              cores=4, 
+                              chains=4,
+                              iter=5000, 
+                              thin=1,
+                              refresh=100,
+                              control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+annual.1var.amb.gaussian
+saveRDS(annual.1var.amb.gaussian, file="annual.1var.amb.gaussian.rds")
+
+### poisson fit ----
+## 1.1 Simple (seeds in:out) annuals percapita and scaled
+annual.1var.amb.poisson <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a  ), # + alphaAP*pm2+ alphaAS*seeded_s
+                                lambdaA ~  (1|block),
+                                alphaAA ~  (1|block), # + alphaAS
+                                nl=TRUE), 
+                             data = annuals_amb,
+                             family = poisson, 
+                             prior = c(prior(normal(1, 1), nlpar = "lambdaA"), 
+                                       prior(normal(0, 1), nlpar = "alphaAA")),
+                             # prior(normal(0, 1), nlpar = "alphaAS"),  #added term for seedling competitive effect
+                             # prior(normal(0, 1), nlpar = "alphaAP")),
+                             inits = "0",  
+                             cores=4, 
+                             chains=4,
+                             iter=5000, 
+                             thin=1,
+                             refresh=100,
+                             control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+annual.1var.amb.poisson
+fixef(annual.1var.amb.poisson)
+# annual.simple.poisson <- annual.simple   # backed up before running normal model to see if the issue is the log link
+saveRDS(annual.1var.amb.poisson, file="annual.1var.amb.poisson.rds")
+
+conditional_effects(annual.simple.poisson, points=TRUE)
+
+
+
+## predict and plot ----
+
+annual.1var.amb.poisson <-readRDS("annual.1var.amb.poisson.rds")
+annual.1var.amb.gaussian <-readRDS("annual.1var.amb.gaussian.rds")
+
+
+
+# predict over seeded_a
+
+dat.new.annual <- expand.grid(
+  seeded_a = seq(0,max(annuals$seeded_a), length.out=100)
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) #0
+  # ,pm2 = mean(annuals$pm2, na.rm=TRUE) # 0
+  # ,warmtrt = c("amb","warm")
+)
+
+pred.1var.amb.gaussian <- 
+  as.data.frame(predict(annual.1var.amb.gaussian, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual) 
+
+pred.1var.amb.poisson <- 
+  as.data.frame(predict(annual.1var.amb.poisson, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual) 
+
+pred.annual <- pred.1var.amb.gaussian %>% 
+  mutate(poisson = pred.1var.amb.poisson$Estimate)
+pred.annual <- pred.annual %>% rename(gaussian = Estimate) %>%
+  pivot_longer(cols=c(gaussian, poisson), names_to="model", values_to = "percap_pred")
+head(pred.annual); dim(pred.annual)
+
+
+c <- pred.annual %>%  ggplot(aes(x = seeded_a, y = percap_pred)) + 
+  geom_line(aes(linetype=model)) +
+  geom_jitter(data=annuals_amb, aes(x=seeded_a, y=percap))+
+  ylab("Per capita fecundity")+
+  theme_pander()
+#
+c
+
+
+## Get parameters ----
+
+get_variables(annual.1var.amb.gaussian)
+
+fit.annuals.table.gaussian <- annual.1var.amb.gaussian %>%
+  spread_draws(`b_.*`, regex = TRUE) %>% 
+  mutate(
+    lam_amb=b_lambdaA_Intercept,
+    alphaAA_amb=b_alphaAA_Intercept,
+
+    # alphaAP_amb=b_alphaAP_Intercept,
+    # alphaAP_warm=b_alphaAP_Intercept + b_alphaAP_warmtrtwarm,
+    
+    # alphaAS_amb=b_alphaAS_Intercept,
+    # alphaAS_warm=b_alphaAS_Intercept + b_alphaAS_warmtrtwarm
+  ) %>%
+  dplyr::select(-contains("b_")) %>% 
+  pivot_longer(-c(.chain, .iteration, .draw), 
+               names_to = c("param")) %>% 
+  group_by(param) %>% 
+  # median_qi(.width = c(.95)) 
+  mean_qi(.width = c(.95)) 
+
+fit.annuals.table.gaussian
+
+
+param.amb.gaus <- fit.annuals.table.gaussian
+
+# try plotting with parameter estimates ----
+# annual.simple <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s)
+# bev1 <- function(x, lam, AA,AS,N_S,AP,N_P) {lam  / (1+AA*x + AS*N_S + AP*N_P)} # Beverton-Holt
+bev1 <- function(x, lam, AA) {lam  / (1+AA*x )} # Beverton-Holt
+
+cc <- annuals_amb %>%  ggplot(aes(x = seeded_a, y = percap, color=warmtrt)) + 
+  geom_jitter()+
+  geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=100*param.amb.gaus$value[2], "AA"=param.amb.gaus$value[1]
+                                                        # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+                                                        # "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
+  )) +
+  # try with fixed values for comparison
+  geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=100, "AA"=1
+                                                           # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+                                                           # "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
+  )) +
+  # geom_function(fun=bev1, color='blue', size=1.5, args=c("lam"=45, "AA"=param.amb.gaus$value[1], 
+  #                                                         # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                                                         "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
+  # )) +
+  ylab("Per capita fecundity")+
+  theme_pander()
+cc
+# 
+#  estimate for AA is still way off
+
+
+param.amb.gaus
+
+pred.annual %>%  ggplot(aes(x = seeded_a, y = percap_pred)) + 
+  geom_line(aes(linetype=model)) +
+  geom_jitter(data=annuals_amb, aes(x=seeded_a, y=percap))+
+  geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=38, "AA"=.0215)) +
+  ylab("Per capita fecundity")+
+  theme_pander()
 
 
 

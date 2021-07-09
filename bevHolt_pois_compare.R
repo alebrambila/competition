@@ -39,34 +39,30 @@ ggplot(dat, aes(x= density_data, y=fitness_data)) +
 ### ### ### ### ### ### ### ### 
 
 fit1 <- brm(
-  bf(fitness_data ~ lambda / (1+ alpha * density_data) # Main brms model formulation; syntax is like lmer usually, but for nonlinear models need to write out equations using parameters
-     , alpha ~ 1 # For nonlinear models, need formulas for parameters (can model them as functions of other things; not doing that here, just an intercept)
+  bf(fitness_data ~ lambda / (1+ alpha * density_data) 
+     , alpha ~ 1 
      , lambda ~ 1 # treatment + (1|block)
      , nl=TRUE),
-  data = dat, # dataframe with data; needs to include the data referred to in model formula
-  prior = c(prior(gamma(20, 1), lb=0, nlpar = "lambda"), # Nonlinear models require priors for the fixed effects
+  data = dat, 
+  prior = c(prior(gamma(20, 1), lb=0, nlpar = "lambda"), 
             prior(normal(0, 1), nlpar = "alpha")
-            #, prior(student_t(3, 0, 1.5), class="sigma")
   )
-  ,inits = "0" # don't have to set initial values, but can
+  ,inits = "0" 
   ,cores=4 
   ,chains=4
   ,iter=5000 
   # ,control = list(adapt_delta = 0.98)
 )
 
-# plot chains to look at convergence
 plot(fit1)
-
 fit1
-
 conditional_effects(fit1) # quick plot
 
 # Retrieve and plot coefficients
 get_variables(fit1)
 
 param.table <- fit1 %>% 
-  gather_draws(`b_.*`, regex = TRUE) %>% # can use regex to get multiple parameters, etc. 
+  gather_draws(`b_.*`, regex = TRUE) %>% 
   median_qi(.width = c(.95))
 
 param.table
@@ -80,7 +76,7 @@ dat %>%
   stat_lineribbon(aes(y = .value), .width = c(.95, .8), alpha = 1) +  # , show.legend=FALSE
   scale_fill_brewer(palette = "Blues")+
   geom_point(data = dat, aes(x = density_data, y = fitness_data))+
-  geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=param.table$.value[2], "alpha"=param.table$.value[1]), alpha=.5)+
+  geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=param.table$.value[2], "alpha"=param.table$.value[1]), alpha=.5) + # this function plots fitted line using estimated parameter values from gaussian model
   theme_minimal()
 
 # GOOD:  complete overlap between predictions using model and that using parameter estimates
@@ -97,7 +93,7 @@ fit1.pois <- brm(
             prior(normal(0, 1), nlpar = "alpha")
             #, prior(student_t(3, 0, 1.5), class="sigma")
   )
-  ,family=poisson
+  ,family=poisson("log")
   ,inits = "0" # don't have to set initial values, but can
   ,cores=4 
   ,chains=4
@@ -124,15 +120,15 @@ param.table
 # plot fit to data
 dat %>%  
   modelr::data_grid(density_data = modelr::seq_range(density_data, n = 101)) %>%
-  add_fitted_draws(fit1.pois, n = 100) %>%
+  add_fitted_draws(fit1.pois, n = 100, scale="response") %>%
   ggplot(aes(x = density_data, y = .value)) +
   # geom_line(aes(y = .value, group = .draw), alpha = 0.1, size = 0.5, color = "blue") +
   stat_lineribbon(aes(y = .value), .width = c(.95, .8), alpha = 0.25) +  # , show.legend=FALSE
   scale_fill_brewer(palette = "Blues")+
   geom_point(data = dat, aes(x = density_data, y = fitness_data))+
-  geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=exp(param.table$median[2]), "alpha"=param.table$median[1]))+
-  geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=exp(param.table$median[2]), "alpha"=exp(param.table$median[1])))+
-  geom_function(fun=bev1, color='yellow', size=1.5, args=c("lam"=exp(param.table$median[2]), "alpha"=exp(param.table$median[1]-1)))+
+   geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=param.table$median[2], "alpha"=param.table$median[1]))+
+#  geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=param.table$median[2], "alpha"=exp(param.table$median[1])))+
+#  geom_function(fun=bev1, color='yellow', size=1.5, args=c("lam"=exp(param.table$median[2]), "alpha"=.12))+
   theme_minimal()
 
 # Here's the issue: model is good, predicts data well.   But can't just use the parameter estimates from the poisson model, at least not the alpha; the lambda looks ok with a exp() transformation.  
@@ -146,11 +142,11 @@ dat.new <- expand.grid(
 )
 
 pred.gaussian <- 
-  as.data.frame(predict(fit1, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  as.data.frame(fitted(fit1, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new) 
 
 pred.poisson <- 
-  as.data.frame(predict(fit1.pois, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  as.data.frame(fitted(fit1.pois, newdata = dat.new, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new) 
 
 pred.all <- pred.gaussian %>% 
@@ -168,3 +164,41 @@ a <- pred.all %>%  ggplot(aes(x = density_data, y = fitness)) +
 a
 
 
+
+# trying to use fitted to recover values?   Doesn't work
+vals <- fitted(fit1.pois, nlpar="alpha", scale="linear")
+head(vals)
+vals <- fitted(fit1.pois, nlpar="alpha", scale="response")
+head(vals)
+vals <- fitted(fit1.pois, scale="linear")
+head(vals)
+vals <- fitted(fit1.pois, scale="response")
+head(vals)
+
+
+
+## make predicted vs observed graph -----
+
+fe <- as.data.frame(fixef(fit1.pois))
+
+# make comparison using predict function
+predict.data <- predict(fit1.pois, dat)
+dd <- cbind(dat, predict.data)
+ggplot(dd, aes(x=fitness_data, y=Estimate)) +
+  geom_point()+
+  geom_abline(slope=1, intercept=1)
+
+
+# make it using parameter estimates (Doesn't work)
+predict.data <- bev1(dat$density_data, lam=fe$Estimate[2],alpha=fe$Estimate[1] )
+dd <- cbind(dat, predict.data)
+ggplot(dd, aes(x=fitness_data, y=predict.data)) +
+  geom_point()+
+  geom_abline(slope=1, intercept=1)
+
+# need to exp() it
+predict.data <- exp(predict.data)
+dd <- cbind(dat, predict.data)
+ggplot(dd, aes(x=fitness_data, y=predict.data)) +
+  geom_point()+
+  geom_abline(slope=1, intercept=1)
