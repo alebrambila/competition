@@ -10,7 +10,6 @@ calcSE<-function(x){
 }
 
 theme_set(theme_classic())
-#### TEMPERATURES ####
 ### Read in the data
 a2<-read_csv("./temps/summer_20/plot2air.csv", skip=14)%>%
   mutate(plot=2, trt="control",  medium="air")%>%
@@ -163,9 +162,9 @@ fullset2<-fullset1%>%
   spread(trt, meanmeantemp)%>%
   mutate(tempdiff=warm-control)%>%
   select(-control, -warm)%>%
-  ungroup()#%>%
-  group_by(mdy, timparse2, position, maxmin, trt)%>%
-  summarize(tempdiff=mean(tempdiff))
+  ungroup()%>%
+    mutate(maxmin=ifelse(maxmin=='maxtemp', 'Daily High', ifelse(maxmin=='meantemp', 'Daily Mean', 'Daily Low')))%>%
+  mutate(medium=ifelse(medium=='air', 'Air 30 cm', 'Soil 5 cm'))
 
 
 ## air and soil temp differences in chamber vs control
@@ -176,10 +175,27 @@ ggplot(fullset2, aes(x=maxmin, y=tempdiff)) +
   ylab("Deviation in Temp > Control (Celsius)") +
   xlab("")+
   geom_hline(yintercept=0)+scale_color_date(date_breaks="months", date_labels="%b")
+fullset2$maxmin=factor(fullset2$maxmin, levels=c("Daily High", "Daily Mean", "Daily Low"))
 
 ggplot(subset(fullset2), aes((timparse2), tempdiff)) +
   geom_point(aes(color=maxmin), size=.7)+geom_smooth(aes(color=maxmin), method="lm")+facet_wrap(~medium)+
-scale_x_date(date_breaks="months", date_labels="%b")+geom_hline(aes(yintercept=0))
+scale_x_date(date_breaks="months", date_labels="%b")+geom_hline(aes(yintercept=0)) +ylab('Warmed - Mean Ambient (°C)') +xlab("")+
+  scale_color_manual(values=c("brown2", "darkorange", "gold1"))
+
+library(lsmeans)
+
+month.sig<-fullset1%>%
+  separate(timparse2, into=c("year", "month", "day"))%>%
+  mutate(dummy=paste(month, trt))
+
+m.interaction <- lm(temp ~ dummy, data = subset(month.sig, maxmin=="maxtemp"&medium=="soil"))
+anova(m.interaction)
+TukeyHSD(aov(m.interaction))
+#sig - 
+#mar and apr meantemp air
+#feb and mar meantemp soil
+# 4 3 2 maxtemp air and soil
+
 
 rm(fullset0, fullset1, fullset, timelord)
 
