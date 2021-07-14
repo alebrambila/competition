@@ -1,91 +1,73 @@
 
 # ------------------------------------------------------------------------------------
-# pull in pars, visualize
+#means
+fitsum.annuals
+fitsum.seedling
+fitsum.adult
 
-par<-c("b_lambdaA_Intercept", "b_alphaAA_Intercept", "b_alphaAP_Intercept", "b_alphaAS_Intercept")
-par0<-c("b_lambdaA_Intercept", "b_lambdaA_warmtrtwarm", "b_alphaAA_Intercept", "b_alphaAP_Intercept", "b_alphaAS_Intercept")
-par1<-c("b_lambdaA_Intercept", "b_lambdaA_warmtrtwarm", "b_alphaAA_Intercept","b_alphaAA_warmtrtwarm", "b_alphaAP_Intercept","b_alphaAP_warmtrtwarm", "b_alphaAS_Intercept", "b_alphaAS_warmtrtwarm")
-
-annual0 <- posterior_summary(A, pars=par0, probs = c(0.025, 0.975), robust = FALSE)
-annual<-as.tibble(annual0)%>%
-  mutate(parameters=rownames(annual0)) %>%
-  separate(parameters, sep="_", into=c("b", "par", "trt"))
-
-ggplot(annual, aes(x=trt, y=Estimate*30)) +geom_point() +
-  geom_errorbar(aes(ymin=Estimate*30-Est.Error*30, ymax=Estimate*30+Est.Error*30))+
-  facet_wrap(~par, scales="free")
-
-annualv0<- posterior_summary(annual.model.var, pars=par1, probs = c(0.025, 0.975), robust = FALSE)
-annualv<-as.tibble(annualv0)%>%
-  mutate(parameters=rownames(annualv0)) %>%
-  separate(parameters, sep="_", into=c("b", "par", "trt"))
-
-ggplot(annualv, aes(x=trt, y=Estimate*30)) +geom_point() +
-  geom_errorbar(aes(ymin=Estimate*30-Est.Error*30, ymax=Estimate*30+Est.Error*30))+
-  facet_wrap(~par, scales="free")
-
-annual.warm0 <- (posterior_summary(annual.warm.model, pars=par, probs = c(0.025, 0.975), robust = FALSE))
-annual.warm<-as.tibble(annual.warm0)%>%
-  mutate(parameters=rownames(annual.warm0)) %>%
-  mutate(parameters=paste(parameters, "_warm"))
-annual.amb0  <- posterior_summary( annual.amb.model, pars=par, probs = c(0.025, 0.975), robust = FALSE)
-annual.amb<-as.tibble(annual.amb0)%>%
-  mutate(parameters=rownames(annual.amb0)) %>%
-  mutate(parameters=paste(parameters, "_amb"))
-annual.bind<-rbind(annual.warm, annual.amb)%>%
-  separate(parameters, sep="_", into=c("b", "par", "int", "trt"))
-
-ggplot(annual.bind, aes(x=trt, y=Estimate*30)) +geom_point() +
-  geom_errorbar(aes(ymin=Estimate*30-Est.Error*30, ymax=Estimate*30+Est.Error*30))+
-  facet_wrap(~par, scales="free")
-
-ggplot(annual.bind, aes(x=trt, y=Estimate*30)) +geom_point() +
-  geom_errorbar(aes(ymin=Q2.5*30, ymax=Q97.5*30))+
-  facet_wrap(~par, scales="free")
-
-
-
-seedling.warm <- posterior_summary(annual.warm.model, probs = c(0.025, 0.975), robust = FALSE)
-seedling.amb  <- posterior_summary( annual.amb.model, probs = c(0.025, 0.975), robust = FALSE)
-
-adult.warm <- posterior_summary(annual.warm.model, probs = c(0.025, 0.975), robust = FALSE)
-adult.amb  <- posterior_summary( annual.amb.model, probs = c(0.025, 0.975), robust = FALSE)
-
-annual.summary   <-posterior_summary(annual.simple.gaussian, probs = c(0.025, 0.975), robust = FALSE)
-adult.summary    <-posterior_summary(adult.simple.gaussian, probs = c(0.025, 0.975), robust = FALSE)
-seedling.summary <-posterior_summary(seedling.simple, probs = c(0.025, 0.975), robust = FALSE)
-
-annual.simple.gaussian
-adult.simple.gaussian
-seedling.simple
-
-
-lambdaAa<-  annual.summary[1,1] #previously 1.30
-lambdaAw<- annual.summary[1,1]+annual.summary[2,1] #previously 1.54 
-lambdaSa<- seedling.summary[1,1] # .019
-lambdaSw<- seedling.summary[1,1]+seedling.summary[2,1] # .019
-lambdaPa<- adult.summary[1,1] #1.46
-lambdaPw<- adult.summary[1,1]+adult.summary[2,1] #1.73
+lambdaAam<-  fitsum.annuals$value[5] #previously 1.30
+lambdaAwm<- fitsum.annuals$value[6] #previously 1.54 
+lambdaSam<- fitsum.seedling$value[7] # .019
+lambdaSwm<- fitsum.seedling$value[8] # .019
+lambdaPam<- fitsum.adult$value[5] #1.46
+lambdaPwm<- fitsum.adult$value[6] #1.73
   
-alphaAAa<- annual.summary[3,1] #.12
-alphaAAw<- annual.summary[3,1]+annual.summary[4,1] # 28
+alphaAAam<- fitsum.annuals$value[1] #.12
+alphaAAwm<- fitsum.annuals$value[2] # 28
 #alphaASa<- .08#annual.amb[] #not in this model anymore
 #alphaASw<- .05#annual.warm[] #not in this model anymore
-alphaAPa<- annual.summary[5,1] #.10
-alphaAPw<- annual.summary[5,1]+annual.summary[6,1] #.10
+alphaAPam<- fitsum.annuals$value[3] #.10
+alphaAPwm<- fitsum.annuals$value[4] #.10
   
-alphaPAa<- adult.summary[3,1] #.0012
-alphaPAw<-  adult.summary[3,1] + adult.summary[4,1] #.0022
-alphaPPa<-  adult.summary[5,1]# .0 
-alphaPPw<- adult.summary[5,1]+adult.summary[6,1] # .17
+alphaPAam<- fitsum.adult$value[1] #.0012
+alphaPAwm<-  fitsum.adult$value[2] #.0022
+alphaPPam<-  fitsum.adult$value[3]# .0 
+alphaPPwm<- fitsum.adult$value[4] # .17
   
-alphaSAa<- seedling.summary[1,1] #.032
-alphaSAw<- seedling.summary[1,1]+seedling.summary[2,1] #.011
-alphaSSa<- seedling.summary[5,1] # .0042
-alphaSSw<- seedling.summary[5,1]+seedling.summary[6,1] #.0012
-alphaSPa<- seedling.summary[3,1] #.097
-alphaSPw<- seedling.summary[3,1]+seedling.summary[4,1] # .094
-  
+alphaSAam<- fitsum.seedling$value[1] #.032
+alphaSAwm<- fitsum.seedling$value[2] #.011
+alphaSSam<- fitsum.seedling$value[5] # .0042
+alphaSSwm<- fitsum.seedling$value[6] #.0012
+alphaSPam<- fitsum.seedling$value[3] #.097
+alphaSPwm<- fitsum.seedling$value[4] # .094
+
+#all of them
+allfits.annuals1<-allfits.annuals%>%
+  filter(.iteration>7000)%>%
+  mutate(id=paste(.chain, .iteration, sep="_"))%>%
+  select(id, param, treatment, value)
+allfits.seedling1<-allfits.seedling%>%
+  mutate(id=paste(.chain, .iteration, sep="_"))%>%
+  filter(.iteration>4500)%>%
+  select(id, param, treatment, value)
+allfits.adult1<-allfits.adult%>%
+  mutate(id=paste(.chain, .iteration, sep="_"))%>%
+  filter(.iteration>7000)%>%
+  select(id, param, treatment, value)
+
+lambdaAa<- subset(allfits.annuals1, param=="lam"&treatment=="ambient")
+lambdaAw<- subset(allfits.annuals1, param=="lam"&treatment=="warmed")
+alphaAAa<- subset(allfits.annuals1, param=="alphaAA"&treatment=="ambient")
+alphaAAw<- subset(allfits.annuals1, param=="alphaAA"&treatment=="warmed")
+alphaAPa<- subset(allfits.annuals1, param=="alphaAP"&treatment=="ambient")
+alphaAPw<- subset(allfits.annuals1, param=="alphaAP"&treatment=="warmed")
+
+lambdaPa<- subset(allfits.adult1, param=="lam"&treatment=="ambient")
+lambdaPw<- subset(allfits.adult1, param=="lam"&treatment=="warmed")
+alphaPAa<- subset(allfits.adult1, param=="alphaPA"&treatment=="ambient")
+alphaPAw<-  subset(allfits.adult1, param=="alphaPA"&treatment=="warmed")
+alphaPPa<-  subset(allfits.adult1, param=="alphaPP"&treatment=="ambient")
+alphaPPw<- subset(allfits.adult1, param=="alphaPP"&treatment=="warmed")
+
+lambdaSa<- subset(allfits.seedling1, param=="lam"&treatment=="ambient")
+lambdaSw<- subset(allfits.seedling1, param=="lam"&treatment=="warmed")
+alphaSAa<- subset(allfits.seedling1, param=="alphaSA"&treatment=="ambient")
+alphaSAw<- subset(allfits.seedling1, param=="alphaSA"&treatment=="warmed")
+alphaSSa<- subset(allfits.seedling1, param=="alphaSS"&treatment=="ambient")
+alphaSSw<- subset(allfits.seedling1, param=="alphaSS"&treatment=="warmed")
+alphaSPa<- subset(allfits.seedling1, param=="alphaSP"&treatment=="ambient")
+alphaSPw<- subset(allfits.seedling1, param=="alphaSP"&treatment=="warmed")
+
 
 # ------------------------------------------------------------------------------------
 ## Set germination and survival fractions from the literature
@@ -145,10 +127,8 @@ adult.resident <- function (N0p, N0s, N0a, sp, alphaSS, alphaSP, alphaSA,lambdaS
   return(Np)
 }
 
-
-#
 # ------------------------------------------------------------------------------------
-# run equilibriums
+# run equilibriums (MEAN)
 
 time <- 1:300
 tmax=max(time)
@@ -162,14 +142,14 @@ eq.annuals.a[1,2] = as.numeric(N0a)
 
 
 for (t in 1:tmax) {
-  eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAa, lambdaAa)
+  eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAam, lambdaAam)
 }
 
 eq.annuals.w<- tibble(time, a)
 eq.annuals.w[1,2] <- N0a
 
 for (t in 1:tmax) {
-  eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAw, lambdaAw)
+  eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAwm, lambdaAwm)
 }
 
 
@@ -186,8 +166,8 @@ eq.perennials.a[1,3] <- N0s
 eq.perennials.a[1,2] <- N0p
 
 for (t in 1:300) {
-  eq.perennials.a[t+1, 2] <- adult.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], sp, alphaSSa, alphaSPa, lambdaSa)
-  eq.perennials.a[t+1, 3] <- seedling.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], ss, gs, alphaPPa, lambdaPa)
+  eq.perennials.a[t+1, 2] <- adult.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], sp, alphaSSam, alphaSPam, lambdaSam)
+  eq.perennials.a[t+1, 3] <- seedling.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], ss, gs, alphaPPam, lambdaPam)
 }
 
 
@@ -197,8 +177,8 @@ eq.perennials.w[1,3] <- N0s
 eq.perennials.w[1,2] <- N0p
 
 for (t in 1:300) {
-  eq.perennials.w[t+1, 2] <- adult.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], sp, alphaSSw, alphaSPa, lambdaSw)
-  eq.perennials.w[t+1, 3] <- seedling.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], ss, gs, alphaPPw, lambdaPw)
+  eq.perennials.w[t+1, 2] <- adult.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], sp, alphaSSwm, alphaSPam, lambdaSwm)
+  eq.perennials.w[t+1, 3] <- seedling.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], ss, gs, alphaPPwm, lambdaPwm)
 }
 
 
@@ -215,6 +195,125 @@ eqp2<-ggplot(perennial.eq, aes(time, (density), color=temp, linetype=type, shape
 ggarrange(eqp1, eqp2)
 
 # ------------------------------------------------------------------------------------
+# run equilibriums add 100 chains for each to visualization
+warmed.annual.chains<-select(lambdaAw, 1:3)%>%mutate(eq=0)
+ambient.annual.chains<-select(lambdaAa, 1:3)%>%mutate(eq=0)
+
+warmed.seedling.chains<-select(lambdaSw, 1:3)%>%mutate(eq=0)
+ambient.seedling.chains<-select(lambdaSa, 1:3)%>%mutate(eq=0)
+  
+warmed.adult.chains<-select(lambdaPw, 1:3)%>%mutate(eq=0)
+ambient.adult.chains<-select(lambdaPa, 1:3)%>%mutate(eq=0)
+
+
+
+#annuals
+for (i in 1:nrow(warmed.annual.chains)) {
+  a <- rep(0, length(time))
+  N0a=1
+  eq.annuals.a <- tibble(time, a)
+  eq.annuals.a[1,2] = as.numeric(N0a)
+  
+  for (t in 1:tmax) {
+    eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAa[i, 4], lambdaAa[i, 4])
+  }
+  ambient.annual.chains[i, 4]<-eq.annuals.a[tmax, 2]
+  
+  eq.annuals.w<- tibble(time, a)
+  eq.annuals.w[1,2] <- N0a
+  
+  for (t in 1:tmax) {
+    eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAw[i, 4], lambdaAw[i, 4])
+  }
+  warmed.annual.chains[i, 4]<-eq.annuals.w[tmax, 2]
+}
+
+N0a=1
+time <- 1:10
+tmax=max(time)
+
+warmed.annual.chains1<-select(lambdaAw, 1:3)
+warmed.annual.chains1 <- cbind(warmed.annual.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+ambient.annual.chains1<-select(lambdaAa, 1:3)
+ambient.annual.chains1 <- cbind(ambient.annual.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+
+for (i in 1:100) {
+  for (t in 1:tmax) {
+    ambient.annual.chains1[i, t+4] <- annual.equilibrium(ambient.annual.chains1[i, t+3], sa, ga, alphaAAa[i, 4], lambdaAa[i, 4])
+  }
+  for (t in 1:tmax) {
+    warmed.annual.chains1[i, t+4] <- annual.equilibrium(warmed.annual.chains1[i, t+3], sa, ga, alphaAAw[i, 4], lambdaAw[i, 4])
+  }
+}
+
+
+#perennials
+
+tmax=300
+warmed.perennial.seedling.chains1<-select(lambdaSw, 1:3)
+warmed.perennial.seedling.chains1 <- cbind(warmed.perennial.seedling.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+ambient.perennial.seedling.chains1<-select(lambdaSa, 1:3)
+ambient.perennial.seedling.chains1 <- cbind(ambient.perennial.seedling.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+warmed.perennial.adult.chains1<-select(lambdaPw, 1:3)
+warmed.perennial.adult.chains1 <- cbind(warmed.perennial.adult.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+ambient.perennial.adult.chains1<-select(lambdaPa, 1:3)
+ambient.perennial.adult.chains1 <- cbind(ambient.perennial.adult.chains1, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+
+for (i in 1:50) {  # this value is always 2000, no need to change it (just to get this to run I do)
+  for (t in 1:tmax) {
+    ambient.perennial.adult.chains1[i, t+4] <- adult.equilibrium(ambient.perennial.adult.chains1[i, t+3], ambient.perennial.seedling.chains1[i, t+3], sp, alphaSSa[i, 4], alphaSPa[i, 4], lambdaSa[i, 4])
+    ambient.perennial.seedling.chains1[i, t+4] <- seedling.equilibrium(ambient.perennial.adult.chains1[i, t+3], ambient.perennial.seedling.chains1[i, t+3], ss, gs, alphaPPa[i, 4], lambdaPa[i, 4])
+  }
+  for (t in 1:tmax) {
+    warmed.perennial.adult.chains1[i, t+4] <- adult.equilibrium(warmed.perennial.adult.chains1[i, t+3], warmed.perennial.seedling.chains1[i, t+3], sp, alphaSSw[i, 4], alphaSPw[i, 4], lambdaSw[i, 4])
+    warmed.perennial.seedling.chains1[i, t+4] <- seedling.equilibrium(warmed.perennial.adult.chains1[i, t+3], warmed.perennial.seedling.chains1[i, t+3], ss, gs, alphaPPw[i, 4], lambdaPw[i, 4])
+  }
+}
+
+
+
+# visualize chains
+annual.chains<-  rbind(ambient.annual.chains1[1:100,],              warmed.annual.chains1[1:100,])%>%
+  gather("time", "population", 4:14)%>%
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(id, treatment))
+seedling.chains<-rbind(ambient.perennial.seedling.chains1[1:50,],  warmed.perennial.seedling.chains1[1:50,])%>%
+  gather("time", "population", 4:304) %>%
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(id, treatment))
+adult.chains<-   rbind(ambient.perennial.adult.chains1[1:50,],     warmed.perennial.adult.chains1[1:50,])%>%
+  gather("time", "population", 4:304)%>%
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(id, treatment))
+
+eqannual<-ggplot(annual.chains, aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density")+
+  geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+
+  scale_colour_manual(values = c("dodgerblue", "dodgerblue", "darkred", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+eqseedling<-ggplot(seedling.chains, aes(time, population))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density")+
+  geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))#+scale_y_continuous(trans='log10')
+eqadult<-ggplot(adult.chains, aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density")+
+  geom_line(data=subset(perennial.eq, type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))#+scale_y_continuous(trans='log10')
+
+ggarrange(eqannual, eqseedling, eqadult, nrow=1, ncol=3, common.legend = T)
+
+# ------------------------------------------------------------------------------------
 # invasion
 
 # annual into perennials 
@@ -228,14 +327,14 @@ annual.invasion.a[1,4] <- eq.perennials.a[300,3] #seedlings at eq
 for (t in 1:tmax) {
   annual.invasion.a[t+1, 2] <- annual.invade(N0a=annual.invasion.a[t,2],
                                              N0p=annual.invasion.a[t,3],N0s=annual.invasion.a[t,4],
-                                    sa, ga, alphaAAa, alphaAPa, lambdaAa)
+                                    sa, ga, alphaAAam, alphaAPam, lambdaAam)
   annual.invasion.a[t+1, 4] <- seedling.resident(N0a=annual.invasion.a[t,2],
                                       N0p=annual.invasion.a[t,3],N0s=annual.invasion.a[t,4],
-                                      ss, gs, alphaPPa, alphaPAa, lambdaPa)
+                                      ss, gs, alphaPPam, alphaPAam, lambdaPam)
   annual.invasion.a[t+1, 3] <- adult.resident(N0a=annual.invasion.a[t,2],
                                       N0p=annual.invasion.a[t,3],
                                       N0s=annual.invasion.a[t,4], 
-                                      sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
+                                      sp, alphaSSam, alphaSPam, alphaSAam, lambdaSam)
   }
 
 #warmed
@@ -247,14 +346,14 @@ annual.invasion.w[1,4] <- eq.perennials.w[300,3] #seedlings at eq
 for (t in 1:tmax) {
   annual.invasion.w[t+1, 2] <- annual.invade(N0a=annual.invasion.w[t,2],
                                              N0p=annual.invasion.w[t,3],N0s=annual.invasion.w[t,4],
-                                             sa, ga, alphaAAw, alphaAPw, lambdaAw)
+                                             sa, ga, alphaAAwm, alphaAPwm, lambdaAwm)
   annual.invasion.w[t+1, 4] <- seedling.resident(N0a=annual.invasion.w[t,2],
                                                  N0p=annual.invasion.w[t,3],N0s=annual.invasion.w[t,4],
-                                                 ss, gs, alphaPPw, alphaPAw, lambdaPw)
+                                                 ss, gs, alphaPPwm, alphaPAwm, lambdaPwm)
   annual.invasion.w[t+1, 3] <- adult.resident(N0a=annual.invasion.w[t,2],
                                               N0p=annual.invasion.w[t,3],
                                               N0s=annual.invasion.w[t,4], 
-                                              sp, alphaSSw, alphaSPw, alphaSAw, lambdaSw)
+                                              sp, alphaSSwm, alphaSPwm, alphaSAwm, lambdaSwm)
 }
 
 
@@ -270,14 +369,14 @@ perennial.invasion.a[1,4] <- .5
 for (t in 1:tmax) {
   perennial.invasion.a[t+1, 2] <- annual.invade(N0a=perennial.invasion.a[t,2],
                                                 N0p=perennial.invasion.a[t,3],N0s=perennial.invasion.a[t,4],
-                                                sa, ga, alphaAAa, alphaAPa, lambdaAa)
+                                                sa, ga, alphaAAam, alphaAPam, lambdaAam)
   perennial.invasion.a[t+1, 4] <- seedling.resident(N0a=perennial.invasion.a[t,2],
                                                     N0p=perennial.invasion.a[t,3],N0s=perennial.invasion.a[t,4],
-                                                    ss, gs, alphaPPa, alphaPAa, lambdaPa)
+                                                    ss, gs, alphaPPam, alphaPAam, lambdaPam)
   perennial.invasion.a[t+1, 3] <- adult.resident(N0a=perennial.invasion.a[t,2],
                                                 N0p=perennial.invasion.a[t,3],
                                                 N0s=perennial.invasion.a[t,4], 
-                                                sp, alphaSSa, alphaSPa, alphaSAa, lambdaSa)
+                                                sp, alphaSSam, alphaSPam, alphaSAam, lambdaSam)
 }
 
 #warmed
@@ -290,14 +389,14 @@ perennial.invasion.w[1,4] <- .5
 for (t in 1:tmax) {
   perennial.invasion.w[t+1, 2] <- annual.invade(N0a=perennial.invasion.w[t,2],
                                                 N0p=perennial.invasion.w[t,3],N0s=perennial.invasion.w[t,4],
-                                                sa, ga, alphaAAw, alphaAPw, lambdaAw)
+                                                sa, ga, alphaAAwm, alphaAPwm, lambdaAwm)
   perennial.invasion.w[t+1, 4] <- seedling.resident(N0a=perennial.invasion.w[t,2],
                                                     N0p=perennial.invasion.w[t,3],N0s=perennial.invasion.w[t,4],
-                                                    ss, gs, alphaPPw, alphaPAw, lambdaPw)
+                                                    ss, gs, alphaPPwm, alphaPAwm, lambdaPwm)
   perennial.invasion.w[t+1, 3] <- adult.resident(N0a=perennial.invasion.w[t,2],
                                                  N0p=perennial.invasion.w[t,3],
                                                  N0s=perennial.invasion.w[t,4], 
-                                                 sp, alphaSSw, alphaSPw, alphaSAw, lambdaSw)
+                                                 sp, alphaSSwm, alphaSPwm, alphaSAwm, lambdaSwm)
 }
   
 
@@ -314,11 +413,11 @@ perennial.inv<-rbind(mutate(perennial.invasion.a, temp="amb"), mutate(perennial.
   mutate(type=ifelse(type=="p", "adult", ifelse(type=="s", "seedling", "annual")))
 
 inv1<-ggplot(subset(annual.inv, time<10), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
-geom_line()+ylab("density")+scale_y_continuous(trans='log10')
+geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10')+facet_wrap(~temp)
 inv2<-ggplot(subset(perennial.inv, time<50), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
-geom_line()+ylab("density")+scale_y_continuous(trans='log10')
+geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10')+facet_wrap(~temp)
 
-ggarrange(inv1, inv2)
+ggarrange(inv1, inv2, nrow=2, ncol=1)
 
 
   # pars contains the following parameters (subscript 1 is the annual, 2 and 3 are the perennial seedling and adult, respectively):
@@ -333,9 +432,10 @@ annualGRWRa <- log(annual.invasion.a[2,2])%>%
   mutate(invader="Invader: Lolium", trt="ambient")
 annualGRWRw <- log(annual.invasion.w[2,2])%>%
   mutate(invader="Invader: Lolium", trt="warmed")
-perennialGRWRa = log(.5*(sp + (4* lambdaPa*5000/(1 + alphaPAa*perennial.invasion.a[1,2]) * lambdaSa/(1 + alphaSAa*perennial.invasion.a[1,2]) + sp^2)^0.5))%>%
+
+perennialGRWRa = log(.5*(sp + (4* lambdaPam*5000/(1 + alphaPAam*perennial.invasion.a[1,2]) * lambdaSam/(1 + alphaSAam*perennial.invasion.a[1,2]) + sp^2)^0.5))%>%
   mutate(invader="Invader: Festuca", trt="ambient")
-perennialGRWRw = log(.5*(sp + (4* lambdaPw*5000/(1 + alphaPAw*perennial.invasion.w[1,2]) * lambdaSw/(1 + alphaSAw*perennial.invasion.w[1,2]) + sp^2)^0.5))%>%
+perennialGRWRw = log(.5*(sp + (4* lambdaPwm*5000/(1 + alphaPAwm*perennial.invasion.w[1,2]) * lambdaSwm/(1 + alphaSAwm*perennial.invasion.w[1,2]) + sp^2)^0.5))%>%
   mutate(invader="Invader: Festuca", trt="warmed")
 
 
@@ -343,7 +443,100 @@ allGRWR<-rbind(annualGRWRa, annualGRWRw, perennialGRWRa, perennialGRWRw)%>%
   mutate(GRWR=a)%>%
   select(-a)
 
-ggplot(allGRWR, aes(x=trt, y=GRWR)) +geom_bar(stat="identity") +facet_wrap(~invader, scales="free") +xlab("") +ylab("Invader Growth Rate (r) When Rare")
+#plot of mean paremter GRWR
+ggplot(allGRWR, aes(x=trt, y=GRWR)) +geom_bar(stat="identity", aes(fill=trt)) +facet_wrap(~invader, scales="free") +xlab("") +ylab("Invader Growth Rate (r) When Rare") + scale_fill_manual(values = c("dodgerblue", "darkred"))
+
+
+#GRWR with mean eq but all the parameters for invasion from there
+
+
+#annual GRWR (chains)
+
+GRWRchainAa<-select(lambdaAa[1:2000,], 1,3)
+GRWRchainAa <- cbind(GRWRchainAa, t(rep(0,tmax-3)))%>%
+  mutate(`1`=N0a)
+
+GRWRchainAw<-select(lambdaAw[1:2000,], 1,3)
+GRWRchainAw <- cbind(GRWRchainAw, t(rep(0,tmax-3)))%>%
+  mutate(`1`=N0a)
+
+
+#grwr algebra from mordecai, transitions adjusted for my model
+for (i in 1:2000) {  # take 100 chains for invasion
+  GRWRchainAa[i,4]<-log(lambdaAa[i,4]*100/(1 + alphaAPa[i,4]*annual.invasion.a[1,3])) 
+  GRWRchainAw[i,4]<-log(lambdaAw[i,4]*100/(1 + alphaAPw[i,4]*annual.invasion.w[1,3])) 
+}
+
+
+GRWRchainA<-rbind(GRWRchainAa,GRWRchainAw)%>%
+  mutate(GRWR=`2`)%>%
+  select(id, treatment, GRWR)%>%
+  mutate(type="annual")
+
+GRWRchainAsum<-GRWRchainA%>%
+  group_by(treatment,type)%>%
+  summarize(meanGRWR=mean(GRWR), seGRWR=calcSE(GRWR))
+
+annualGRWRchain<-ggplot(GRWRchainAsum, aes(x=treatment, y=meanGRWR))+
+  #  scale_y_continuous(trans='log10')+
+ # ylim(-.03,.1)+
+  geom_jitter(data=GRWRchainA, aes(x=treatment, y=GRWR), width=.2,size=.25)+geom_hline(yintercept = 0)+
+  geom_point(stat="identity", position="dodge",aes(color=treatment), size=3)+
+  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+
+  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)
+
+
+#perennials GRWR chains
+GRWRchainPa<-select(lambdaPa[1:2000,], 1,3)
+GRWRchainPa <- cbind(GRWRchainPa, t(rep(0,tmax-3)))%>%
+  mutate(`1`=N0p)
+
+GRWRchainPw<-select(lambdaPw[1:2000,], 1,3)
+GRWRchainPw <- cbind(GRWRchainPw, t(rep(0,tmax-3)))%>%
+  mutate(`1`=N0p)
+
+#grwr algebra from mordecai, transitions adjusted for my model
+for (i in 1:2000) {  # take 100 chains for invasion
+  GRWRchainPa[i,4]<-log(.5*(sp + (4* lambdaPa[i,4]*5000/(1 + alphaPAa[i,4]*perennial.invasion.a[1,2]) * lambdaSa[i,4]/(1 + alphaSAa[i,4]*perennial.invasion.a[1,2]) + sp^2)^0.5))
+  GRWRchainPw[i,4]<-log(.5*(sp + (4* lambdaPw[i,4]*5000/(1 + alphaPAw[i,4]*perennial.invasion.a[1,2]) * lambdaSw[i,4]/(1 + alphaSAw[i,4]*perennial.invasion.a[1,2]) + sp^2)^0.5))
+  
+}
+
+GRWRchainP<-rbind(GRWRchainPa,GRWRchainPw)%>%
+  mutate(GRWR=`2`)%>%
+  select(id, treatment, GRWR)%>%
+  mutate(type="perennial")
+
+GRWRchainPsum<-GRWRchainP%>%
+  group_by(treatment,type)%>%
+  summarize(meanGRWR=mean(GRWR), seGRWR=calcSE(GRWR))
+
+perennialGRWRchain<-ggplot(GRWRchainPsum, aes(x=treatment, y=meanGRWR))+
+#  scale_y_continuous(trans='log10')+
+  ylim(-.03,.1)+
+  geom_jitter(data=GRWRchainP, aes(x=treatment, y=GRWR), width=.2,size=.25)+geom_hline(yintercept = 0)+
+  geom_point(stat="identity", position="dodge",aes(color=treatment), size=3)+
+  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+
+  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)
+  
+
+
+ggarrange(annualGRWRchain, perennialGRWRchain, common.legend=T)
+
+for (i in 1:100) {  # take 100 chains for invasion
+  aPc[i, t+4] <- adult.equilibrium(aPc[i, t+3], aPs[i, t+3], sp, alphaSSa[i, 4], alphaSPa[i, 4], lambdaSa[i, 4])
+  aSc[i, t+4] <- seedling.equilibrium(aPc[i, t+3], aPs[i, t+3], ss, gs, alphaPPa[i, 4], lambdaPa[i, 4])
+}
+for (t in 1:tmax) {
+  wPc[i, t+4] <- adult.equilibrium(wPc[i, t+3], wSc[i, t+3], sp, alphaSSw[i, 4], alphaSPw[i, 4], lambdaSw[i, 4])
+  wSc[i, t+4] <- seedling.equilibrium(wPc[i, t+3], wSc[i, t+3], ss, gs, alphaPPw[i, 4], lambdaPw[i, 4])
+}
+
+}
+
+
+
+
 
 #method 2, need to create a 2x2 transition matrix with (seed survival term, seed production term )
 #                                                      (seeds maturing term, adults surviving term)
