@@ -38,7 +38,7 @@ allfits.annuals1<-allfits.annuals%>%
   select(id, param, treatment, value)
 allfits.seedling1<-allfits.seedling%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
-  filter(.iteration>4500)%>%
+  filter(.iteration>1000)%>%
   select(id, param, treatment, value)
 allfits.adult1<-allfits.adult%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
@@ -71,14 +71,14 @@ alphaSPw<- subset(allfits.seedling1, param=="alphaSP"&treatment=="warmed")
 
 # ------------------------------------------------------------------------------------
 ## Set germination and survival fractions from the literature
-sa <- .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
+sa <-0# .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
 ga <- .89 #ghersa 1984
 ga <- 100 #gundel 2007, gundel 2006
 ga <- .97 #lin 2018
 
 sp <- 1 # 100% adults survive observed in field - x in literature
 sp <-.975 # or 2.5% fiegner 2007
-ss <- .0
+ss <- 0
 gs <- .63 # fiegner 2007
 gs <- .90 # schmidt 1998
 gs <- .31 # maret 2005
@@ -286,11 +286,11 @@ for (i in 1:50) {  # this value is always 2000, no need to change it (just to ge
 
 # visualize chains
 annual.chains<-  rbind(ambient.annual.chains1[1:100,],              warmed.annual.chains1[1:100,])%>%
-  gather("time", "population", 4:14)%>%
+  gather("time", "population", 4:14)%>% #this only runs to 14 because it only runs for 10 years
   mutate(time=as.numeric(time))%>%
   mutate(id=paste(id, treatment))
 seedling.chains<-rbind(ambient.perennial.seedling.chains1[1:50,],  warmed.perennial.seedling.chains1[1:50,])%>%
-  gather("time", "population", 4:304) %>%
+  gather("time", "population", 4:304) %>% # this runs to 304 because it takes 300 years to equilibrate
   mutate(time=as.numeric(time))%>%
   mutate(id=paste(id, treatment))
 adult.chains<-   rbind(ambient.perennial.adult.chains1[1:50,],     warmed.perennial.adult.chains1[1:50,])%>%
@@ -298,24 +298,24 @@ adult.chains<-   rbind(ambient.perennial.adult.chains1[1:50,],     warmed.perenn
   mutate(time=as.numeric(time))%>%
   mutate(id=paste(id, treatment))
 
-eqannual<-ggplot(annual.chains, aes(time, (population)))+ 
+eqannual<-ggplot(subset(annual.chains, population>0), aes(time, (population)))+ 
   geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density")+
   geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+
   scale_colour_manual(values = c("dodgerblue", "dodgerblue", "darkred", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-eqseedling<-ggplot(seedling.chains, aes(time, population))+ 
+eqseedling<-ggplot(subset(seedling.chains, population>0), aes(time, population))+ 
   geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density")+
   geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))#+scale_y_continuous(trans='log10')
-eqadult<-ggplot(adult.chains, aes(time, (population)))+ 
+  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+eqadult<-ggplot(subset(adult.chains, population>0), aes(time, (population)))+ 
   geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density")+
   geom_line(data=subset(perennial.eq, type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))#+scale_y_continuous(trans='log10')
+  scale_colour_manual(values = c("dodgerblue","dodgerblue", "darkred", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
 
 ggarrange(eqannual, eqseedling, eqadult, nrow=1, ncol=3, common.legend = T)
 
 # ------------------------------------------------------------------------------------
 # invasion
-
+time=1:300
 # annual into perennials 
 #ambient
 annual.invasion.a <- tibble(time, a, p, s)
@@ -412,10 +412,12 @@ perennial.inv<-rbind(mutate(perennial.invasion.a, temp="amb"), mutate(perennial.
   gather("type", "density", a, p, s)%>%
   mutate(type=ifelse(type=="p", "adult", ifelse(type=="s", "seedling", "annual")))
 
-inv1<-ggplot(subset(annual.inv, time<10), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
-geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10')+facet_wrap(~temp)
-inv2<-ggplot(subset(perennial.inv, time<50), aes(time, density, color=temp, linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
-geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10')+facet_wrap(~temp)
+inv1<-ggplot(subset(annual.inv), aes(time, density,  linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
+geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10', labels = scales::comma)+facet_wrap(~temp)+ 
+  theme(text=element_text(size=16))
+inv2<-ggplot(subset(perennial.inv), aes(time, density,  linetype=type, shape=type))+   scale_colour_manual(values = c("dodgerblue", "darkred"))+
+geom_line(size=1.25)+ylab("density")+scale_y_continuous(trans='log10', labels = scales::comma)+facet_wrap(~temp)+ 
+  theme(text=element_text(size=16))
 
 ggarrange(inv1, inv2, nrow=2, ncol=1)
 
@@ -479,11 +481,11 @@ GRWRchainAsum<-GRWRchainA%>%
 
 annualGRWRchain<-ggplot(GRWRchainAsum, aes(x=treatment, y=meanGRWR))+
   #  scale_y_continuous(trans='log10')+
- # ylim(-.03,.1)+
+  ylim(-.03, 4.5)+
   geom_jitter(data=GRWRchainA, aes(x=treatment, y=GRWR), width=.2,size=.25)+geom_hline(yintercept = 0)+
   geom_point(stat="identity", position="dodge",aes(color=treatment), size=3)+
-  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+
-  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)
+  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+ylab("")+
+  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)+theme(text=element_text(size=16))
 
 
 #perennials GRWR chains
@@ -512,16 +514,22 @@ GRWRchainPsum<-GRWRchainP%>%
   summarize(meanGRWR=mean(GRWR), seGRWR=calcSE(GRWR))
 
 perennialGRWRchain<-ggplot(GRWRchainPsum, aes(x=treatment, y=meanGRWR))+
-#  scale_y_continuous(trans='log10')+
-  ylim(-.03,.1)+
+#  scale_y_continuous(trans='log10')+  
+  ylim(-.03, 4.5)+
   geom_jitter(data=GRWRchainP, aes(x=treatment, y=GRWR), width=.2,size=.25)+geom_hline(yintercept = 0)+
   geom_point(stat="identity", position="dodge",aes(color=treatment), size=3)+
-  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+
-  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)
+  scale_color_manual(values = c("dodgerblue","darkred"))+facet_wrap(~type)+ylab("GRWR")+
+  geom_errorbar (aes(ymin=meanGRWR-seGRWR, ymax=meanGRWR+seGRWR, color=treatment), width=.2)+theme(text=element_text(size=16))
   
 
+#visualize
+ggarrange(perennialGRWRchain, annualGRWRchain, common.legend=T)
 
-ggarrange(annualGRWRchain, perennialGRWRchain, common.legend=T)
+#compare with mean
+ggplot(allGRWR, aes(x=trt, y=GRWR)) +geom_point(stat="identity", aes(color=trt)) +
+  facet_wrap(~invader) + geom_hline(yintercept=0) +xlab("") +ylab("Invader Growth Rate (r) When Rare") + 
+  scale_color_manual(values = c("dodgerblue", "darkred"))  +ylim(-.03, 4.5)+theme(text=element_text(size=16))
+
 
 for (i in 1:100) {  # take 100 chains for invasion
   aPc[i, t+4] <- adult.equilibrium(aPc[i, t+3], aPs[i, t+3], sp, alphaSSa[i, 4], alphaSPa[i, 4], lambdaSa[i, 4])
