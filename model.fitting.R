@@ -86,7 +86,7 @@ ggarrange(a1, a2, a3, common.legend = T, nrow=1, ncol=3, legend)
 #  scale_color_gradient(low = "blue", high = "red", na.value = NA)
 
 ### BRM fits ----
-#new SIMPLE annual gaussian (no block/alphaAS)
+#new SIMPLE annual gaussian (no block/alphaAS) ----
 #annuals.sc <- mutate(annuals, seeded_a=seeded_a/1000)
 annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), # + alphaAS*seeded_s 
                                  lambdaA ~ warmtrt, #+ (1|block),
@@ -195,6 +195,78 @@ ggplot(subset(annuals, seeded_a<1500), aes(x = pm2, y = percap, color=warmtrt)) 
 ggplot(subset(annuals, comptrt=="none"), aes(x=warmtrt, y=percap)) +
   geom_boxplot() +geom_jitter(width=.2)+xlab("")+ylab("Annual percapita fecundity no competition")+ 
   theme(text=element_text(size=16))
+
+# do a version with amb and warmed to parallel other models that needed it ----
+annual.simple.gaussian.amb <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), # + alphaAS*seeded_s 
+                                 lambdaA ~ 1, #+ (1|block),
+                                 alphaAA + alphaAP  ~ 1, #+ (1|block), #+ alphaAS
+                                 nl=TRUE), 
+                              data = subset(annuals, warmtrt=="amb"),
+                              family = gaussian, 
+                              prior = c(prior(normal(0, 1), lb=0, nlpar = "lambdaA"), 
+                                        prior(normal(0, .1), lb=0, nlpar = "alphaAA"),
+                                        # prior(normal(0, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
+                                        prior(normal(0, .1), lb=0, nlpar = "alphaAP")),
+                              inits = "0",  
+                              cores=4, 
+                              chains=4,
+                              iter=15000, 
+                              thin=1,
+                              refresh=100,
+                              control = list(adapt_delta = 0.99, max_treedepth = 18))
+annual.simple.gaussian.warm <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), # + alphaAS*seeded_s 
+                                 lambdaA ~ 1, #+ (1|block),
+                                 alphaAA + alphaAP  ~ 1, #+ (1|block), #+ alphaAS
+                                 nl=TRUE), 
+                              data = subset(annuals, warmtrt=="warm"),
+                              family = gaussian, 
+                              prior = c(prior(normal(0, 1), lb=0, nlpar = "lambdaA"), 
+                                        prior(normal(0, .1),lb=0,  nlpar = "alphaAA"),
+                                        # prior(normal(0, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
+                                        prior(normal(0, .1), lb=0, nlpar = "alphaAP")),
+                              inits = "0",  
+                              cores=4, 
+                              chains=4,
+                              iter=15000, 
+                              thin=1,
+                              refresh=100,
+                              control = list(adapt_delta = 0.99, max_treedepth = 18))
+
+
+allfits.annual.amb <- annual.simple.gaussian.amb %>%
+  spread_draws(`b_.*`, regex = TRUE) 
+allfits.annual.warm <- annual.simple.gaussian.warm %>%
+  spread_draws(`b_.*`, regex = TRUE) 
+allfits.annual.b<-allfits.annual.amb%>% 
+  mutate(
+    lam_amb=b_lambdaA_Intercept,
+    lam_warm=allfits.annual.warm$b_lambdaA_Intercept,
+    
+    alphaAA_amb=b_alphaAA_Intercept,
+    alphaAA_warm=allfits.annual.warm$b_alphaAA_Intercept,
+    
+    alphaAP_amb=b_alphaAP_Intercept,
+    alphaAP_warm=allfits.annual.warm$b_alphaAP_Intercept,
+    
+  ) %>%
+  dplyr::select(-contains("b_")) %>% 
+  pivot_longer(-c(.chain, .iteration, .draw), 
+               names_to = c("param", "treatment"),
+               names_sep = "_")%>%
+  mutate(treatment=ifelse(treatment=="amb", "ambient", "warmed"))
+
+
+
+fitsum.annual.b<-allfits.annual.b%>%
+  group_by(param, treatment) %>% 
+  # median_qi(.width = c(.95)) 
+  mean_qi(.width = c(.66)) 
+
+#automatically .66 and .95 
+ggplot(subset(allfits.adult, .iteration>5000), aes(x=value, y=treatment))+
+  stat_dotsinterval()+facet_wrap(~param, scales="free")+ 
+  theme(text=element_text(size=20))
+
 
 ################################
 ### 2. ADULT PERENNIAL FECUNDITY ----
