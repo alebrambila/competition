@@ -180,10 +180,6 @@ pred.annual.gaussian <-
   as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.annual) 
 
-pred.annual.poisson <- 
-  as.data.frame(predict(annual.simple.poisson, newdata = dat.new.annual, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
-  cbind(dat.new.annual) 
-
 pred.annual <- pred.annual.gaussian %>% 
   mutate(poisson = pred.annual.poisson$Estimate)
 head(pred.annual); dim(pred.annual)
@@ -244,8 +240,8 @@ pred.annual <- pred.annual %>% rename(gaussian = Estimate) %>%
 head(pred.annual); dim(pred.annual)
 
 
-c <- pred.annual %>%  ggplot(aes(x = seeded_a, y = percap_pred, color=warmtrt)) + 
-  geom_line(aes(linetype=model)) +
+c <- pred.annual.gaussian %>%  ggplot(aes(x = seeded_a, y = percap_pred, color=warmtrt)) + 
+  geom_line(aes()) +
   geom_jitter(data=annuals, aes(x=seeded_a, y=percap))+
   ylab("Per capita fecundity")+
   theme_pander()
@@ -295,17 +291,17 @@ param.warm.gaus <- filter(fit.annuals.table.gaussian, treatment=="warm")
 # bev1 <- function(x, lam, AA,AS,N_S,AP,N_P) {lam  / (1+AA*x + AS*N_S + AP*N_P)} # Beverton-Holt
 bev1 <- function(x, lam, AA,AP,N_P) {lam  / (1+AA*x + AP*N_P)} # Beverton-Holt
 
-cc <- annuals %>%  ggplot(aes(x = seeded_a, y = percap, color=warmtrt)) + 
+ ggplot(annuals, aes(x = seeded_a, y = percap, color=warmtrt)) + 
   geom_jitter()+
   geom_function(fun=bev1, color='red', size=1.5, args=c("lam"=100*param.amb.gaus$value[3], "AA"=param.amb.gaus$value[1], 
                                                           # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
                                                           "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
   )) +
   # try with fixed values for comparison
-  geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=100, "AA"=.5,
-                                                          # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-                                                          "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
-  )) +
+  #geom_function(fun=bev1, color='orange', size=1.5, args=c("lam"=100, "AA"=.5,
+  #                                                        # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                                                        "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
+  #)) +
   geom_function(fun=bev1, color='blue', size=1.5, args=c("lam"=100*param.warm.gaus$value[3], "AA"=param.warm.gaus$value[1], 
                                                         # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
                                                         "AP"=param.warm.gaus$value[2], "N_P"=mean(annuals$pm2)
@@ -314,7 +310,7 @@ cc <- annuals %>%  ggplot(aes(x = seeded_a, y = percap, color=warmtrt)) +
   #                                                         # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
   #                                                         "AP"=param.amb.gaus$value[2], "N_P"=mean(annuals$pm2)
   # )) +
-  ylab("Per capita fecundity")+
+  ylab("Per capita fecundity")#+
   theme_pander()
 cc
 # 
