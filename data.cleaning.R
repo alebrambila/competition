@@ -10,8 +10,16 @@ theme_set(theme_classic())
 #### VEG  Read-in/Cleanup ####
 
 ### Read data
+
+### Read data
 phytometers<-read_csv("phytometers.csv")%>%
-  mutate(sub=toupper(sub))
+  mutate(sub=toupper(sub))%>%
+  dplyr::select(1:7, 10:18)%>%
+  mutate(area=ifelse(is.na(area), (as.numeric(diameter)/2)^2*3.14, area))%>%
+  mutate(area=ifelse(is.na(area), (as.numeric(circumference)/3.14/2)^2*3.14, area))%>%
+  dplyr::select(-diameter, -circumference)
+
+
 startingphyt<-read_csv("starting_plugs.csv")%>%
   mutate(sub=toupper(sub))
 
@@ -28,6 +36,18 @@ vegplot<-read_csv("key_cover.csv")%>%
   mutate(plotid=paste(row, column, sub, sep="."))%>%
   mutate(time="spring2020")
 vegplot$comptrt <- factor(vegplot$comptrt, levels = c("none", "annuals", "seedling perennials", "adult perennials", "annuals+seedlings", "annuals+adults", "seedlings+adults"))
+vegplot2021<-read_csv("key_cover2021.csv")%>%
+  mutate(sub=toupper(sub))%>%
+  mutate(comptrt=ifelse(comptrt=="n", "none", ifelse(comptrt=="a", "annuals", 
+                                                     ifelse(comptrt=="p", "adult perennials", 
+                                                            ifelse(comptrt=="s", "seedling perennials",
+                                                                   ifelse(comptrt=="a_p", "annuals+adults", 
+                                                                          ifelse(comptrt=="a_s", "annuals+seedlings", "seedlings+adults")))))))%>%
+  mutate(plotid=paste(row, column, sub, sep="."))%>%
+  mutate(time="spring2021")
+vegplot2021$comptrt <- factor(vegplot$comptrt, levels = c("none", "annuals", "seedling perennials", "adult perennials", "annuals+seedlings", "annuals+adults", "seedlings+adults"))
+#working on 2021
+
 
 ### PLOTKEY ####
 plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
@@ -55,8 +75,7 @@ seedling_sumsur2020<-select(vegplot, 18, 19, 10, 15, 16)%>%
   select(-count_s, `20fall_s`)%>%
   mutate(fall20_s.g=ifelse(fall20_s.g>spring20_s, spring20_s, fall20_s.g))%>% #in some cases my adjustment above put fall>spring, this is to max out at 100% survival
   mutate(spring20_s.g=ifelse(spring20_s.g<fall20_s, fall20_s, spring20_s.g))%>% #in some cases my adjustment above put fall>spring, this is to max out at 100% survival
-  
-    mutate(sumsur=fall20_s.g/spring20_s)
+  mutate(sumsur=fall20_s.g/spring20_s)
 
 ### Seedling summer survival: 
 # phytometers and background within each plot
@@ -96,6 +115,42 @@ phytometers1<-left_join(phytometers, select(startingphyt, -date))%>%
   mutate(veg_height=ifelse(is.na(veg_height), rep_height, veg_height))%>%
   mutate(type=substr(id, 1, 1), id=substr(id, 2, 2))%>%
   mutate(plotid=paste(row, column, sub, sep="."))
+
+
+
+
+phytometers1<-phytometers%>%
+  group_by(year_data, year_planted, row, column, sub)%>%
+  mutate(plotid=paste(row, column, sub, sep="."))%>%
+  mutate(tillers=as.numeric(ifelse(is.na(tillers), 0, tillers)))%>%
+  mutate(type=(ifelse(is.na(type), "plug", type)))%>%
+  mutate(type2=ifelse(type=="adult"&year_data==2021, `2021_spring`, ifelse(type=="adult"&year_data==2020, "plug", type)))%>%
+  mutate(type2=paste(type2, year_data, sep="_"))%>%
+  mutate(type2=ifelse(type2=="alive_2021", "plug_2021", type2))%>%
+  mutate(type2=ifelse(type2=="partial_2021", "gopherplug_2021", type2))
+phytometers1$type2 <- factor(phytometers1$type2, levels = c("plug_2019", "plug_2020", "plug_2021", "gopherplug_2021", "newadult_2021"))
+
+phytometers2<-left_join(phytometers1, plotkey)
+
+
+mutate(growth=veg_height-starting_height)%>%
+  mutate(widening=circumference-starting_cir)%>%
+  mutate(veg_height=ifelse(is.na(veg_height), rep_height, veg_height))%>%
+  #  select(-1, -8, -date, -starting_height, -starting_cir)%>%
+  mutate(type=substr(id, 1, 1), id=substr(id, 2, 2))%>%
+  
+  #visualize plugs, new adults, and existing adults (damaged, vs good)
+  ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2, y=area)) + geom_boxplot(aes(fill=comptrt))
+ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2, y=tillers)) + geom_boxplot(aes(fill=comptrt))
+ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2)) + geom_histogram(stat="count")  
+
+
+#visualize adult phytometer growth
+ggplot(subset(phytometers, type=="adult"), aes(x=year_data, y=area)) + geom_boxplot(aes(group=year_data)) +facet_grid()
+
+
+
+
 
 fecundity<-select(phytometers1, plotid, type, id, tillers)%>% 
   filter(type!="s")%>%
