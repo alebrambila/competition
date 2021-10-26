@@ -25,7 +25,7 @@ source('data.cleaning.R')
 # 2.1 Perennial fecundity scaled
 # 2.2 (skip) Perennial fecundity logscaled
 # 3.1 Simple (seeds in:adults out) perennial seedlings binomial
-# 3.2 (skip) pring (seeds in:stems out) perennial seedlings binomial (first half of 3.1)
+# 3.2 (skip) Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1)
 # 3.3 (skip) Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1)
 
 
@@ -51,10 +51,10 @@ annuals$percap <- annuals$plotseeds/annuals$seeded_a
 
 
 ### visualize ----
-ggplot(annuals, aes(x=seeded_a, y=plotseeds, color=warmtrt)) +
-  geom_point(aes(shape=comptrt), width=1)+
-  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("total annual seed production")+xlab("seeded annuals")
+ggplot(annuals, aes(x=seeded_a, y=pm2, color=warmtrt)) +
+  geom_jitter(aes(shape=comptrt), size=1)+
+ # geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))#+ylab("total annual seed production")+xlab("seeded annuals")
 
 # JD: look at data
 head(annuals); dim(annuals)
@@ -64,13 +64,13 @@ annuals %>% group_by(block) %>%
 table(annuals$warmtrt, annuals$block)
 
 # per capita
-a1<-ggplot(subset(annuals), aes(x=pm2, y=percap, color=warmtrt)) +
+a1<-ggplot(annuals, aes(x=pm2, y=percap, color=warmtrt)) +
   geom_jitter(aes(), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
   geom_smooth(method = 'lm',formula = y ~ x , se=F) +xlab("perennial adults")+ylab("annual percapita seeds out")
 
 a2<-ggplot(subset(annuals), aes(x=seeded_a, y=percap, color=warmtrt)) +
   geom_jitter(aes(), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
-  geom_smooth(method = 'lm',formula = y ~ x, se=F)+xlab("annual seeds in")#+ylab("annual percapita seeds out")
+  geom_smooth(method = 'lm',formula = y ~ x, se=T)+xlab("annual seeds in")#+ylab("annual percapita seeds out")
 
 #added in seedling perennials (not sure it's going to be helpful)
 a3<-ggplot(subset(annuals), aes(x=seeded_s, y=percap, color=warmtrt)) +
@@ -106,11 +106,131 @@ annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + 
                               refresh=100,
                               control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-annual.simple.gaussian
-saveRDS(annual.simple.gaussian, file="annual.simple.gaussian0713rds")
+plot(annual.simple.gaussian)
 
+#look at the plot of relationship between no competition lambda and intraspecific competition
+# pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
+# pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
+
+saveRDS(annual.simple.gaussian, file="annual.simple.gaussian0713rds")
+annual.simple.gaussian<-readRDS(file="A063021.rds")
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
+
+## predict and plot COUNTERFACTUALS----
+
+### predict over pm2 (hold seeded_a steady)
+dat.new.annual.max <- expand.grid(
+  seeded_a = max(annuals$seeded_a, na.rm=TRUE)
+  # seeded_a = 0
+  # seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
+  ,pm2 = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm")
+)
+
+dat.new.annual.mean <- expand.grid(
+  #seeded_a = max(annuals$seeded_a, na.rm=TRUE)
+  # seeded_a = 0
+  seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
+  ,pm2 = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm")
+)
+
+dat.new.annual.0 <- expand.grid(
+  seeded_a = 0
+  # seeded_a = 0
+  # seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
+  ,pm2 = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm")
+)
+
+pred.annual.gaussian.0 <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.0, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.0) 
+pred.annual.gaussian.mean <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.mean, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.mean) 
+pred.annual.gaussian.max <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.max, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.max) 
+
+a<-ggplot(data=filter(pred.annual.gaussian.0), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=pm2, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with seeded_a=0")+
+  theme_classic()
+b<-ggplot(data=filter(pred.annual.gaussian.mean), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=pm2, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with mean(seeded_a)")+
+  theme_classic()
+c<-ggplot(data=filter(pred.annual.gaussian.max), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=pm2, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with max(seeded_a)")+
+  theme_classic()
+
+
+# predict over seeded_a (hold pm2 steady)
+
+dat.new.annual.max2 <- expand.grid(
+  seeded_a = seq(0,max(annuals$seeded_a), length.out=100)
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) #0
+  ,pm2 = max(annuals$pm2, na.rm=TRUE) # 0
+  ,warmtrt = c("amb","warm")
+)
+dat.new.annual.mean2 <- expand.grid(
+  seeded_a = seq(0,max(annuals$seeded_a), length.out=100)
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) #0
+  ,pm2 = mean(annuals$pm2, na.rm=TRUE) # 0
+  ,warmtrt = c("amb","warm")
+)
+dat.new.annual.02 <- expand.grid(
+  seeded_a = seq(0,max(annuals$seeded_a), length.out=100)
+  # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) #0
+  ,pm2 = 0 # 0
+  ,warmtrt = c("amb","warm")
+)
+
+
+pred.annual.gaussian.02 <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.02, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.02) 
+pred.annual.gaussian.mean2 <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.mean2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.mean2) 
+pred.annual.gaussian.max2 <- 
+  as.data.frame(predict(annual.simple.gaussian, newdata = dat.new.annual.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.annual.max2) 
+
+f<-ggplot(data=filter(pred.annual.gaussian.max2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=seeded_a, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with max(pm2)")+
+  theme_classic()
+e<-ggplot(data=filter(pred.annual.gaussian.mean2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=seeded_a, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with mean(pm2)")+
+  theme_classic()
+d<-ggplot(data=filter(pred.annual.gaussian.02), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=annuals, aes(x=seeded_a, y=percap), shape=1, width=.25)+
+  ylab("Per capita fecundity with pm2=0")+
+  theme_classic()
+
+(a | b | c) / (d | e | f)
+
+
 
 allfits.annuals <- annual.simple.gaussian %>%
   spread_draws(`b_.*`, regex = TRUE) %>% 
@@ -154,46 +274,6 @@ bev.annuals <- function(x, lam, AA,AP,N_P) {lam  / (1+AA*x + AP*N_P)} # Beverton
 bev.annuals2 <- function(x, lam, AA,AP,N_A) {lam  / (1+AA*N_A + AP*x)} # Beverton-Holt
 
 
-#plot annual fecundity when other competitor is at mean value
-ggplot(subset(annuals, pm2<3), aes(x = seeded_a, y = percap, color=warmtrt)) + 
-  geom_jitter()+
-#  geom_function(fun=bev.annuals, color='dodgerblue', size=1.5,
-#                args=c("lam"=100*fitsum.annuals$value[5], "AA"=fitsum.annuals$value[1], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                      "AP"=fitsum.annuals$value[3], "N_P"=mean(annuals$pm2)
-#  ))+
-#  geom_function(fun=bev.annuals, color='darkred', size=1.5,
-#                args=c("lam"=100*fitsum.annuals$value[6], "AA"=fitsum.annuals$value[2], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "AP"=fitsum.annuals$value[4], "N_P"=mean(annuals$pm2)
-#  ))+
-  geom_smooth(method=lm, se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+
-  ylab("Per capita annual fecundity")+
-  xlab("Seeded annuals/m2")+ 
-  theme(text=element_text(size=16))
-
-ggplot(subset(annuals, seeded_a<1500), aes(x = pm2, y = percap, color=warmtrt)) + 
-  geom_jitter()+
-#  geom_function(fun=bev.annuals2, color='dodgerblue', size=1.5,
-#                args=c("lam"=100*fitsum.annuals$value[5], "AA"=fitsum.annuals$value[1], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "AP"=fitsum.annuals$value[3], "N_A"=mean(annuals$seeded_a)
-#                ))+
-#  geom_function(fun=bev.annuals2, color='darkred', size=1.5,
-#                args=c("lam"=100*fitsum.annuals$value[6], "AA"=fitsum.annuals$value[2], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "AP"=fitsum.annuals$value[4], "N_A"=mean(annuals$seeded_a)
-#                ))+
-  geom_smooth(method=lm, se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+
-  ylab("Per capita annual fecundity")+
-  xlab("Perennial density/m2")+ 
-  theme(text=element_text(size=20))
-
-ggplot(subset(annuals, comptrt=="none"), aes(x=warmtrt, y=percap)) +
-  geom_boxplot() +geom_jitter(width=.2)+xlab("")+ylab("Annual percapita fecundity no competition")+ 
-  theme(text=element_text(size=16))
 
 ################################
 ### 2. ADULT PERENNIAL FECUNDITY ----
@@ -220,8 +300,6 @@ p2<-ggplot(datp, aes(x=seeded_a, y=out_p, color=warmtrt)) +
 ggarrange(p1, p2, common.legend = T)
 
 
-
-
 table(datp$warmtrt, datp$block)
 table(datp$warmtrt, datp$comptrt)
 
@@ -230,7 +308,7 @@ datp$warmtrt <- as.factor(datp$warmtrt)
 #Fit BRM----
 ### 2.1 Perennial fecundity scaled
 # new SIMPLE
-adult.simple.gaussian <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p)+1, # increased scale to 5000
+adult.simple.gaussian <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p), # increased scale to 5000
                                  lambdaP ~ warmtrt, #+ (1|block),
                                  alphaPA + alphaPP  ~ warmtrt, #+ (1|block), #+ alphaAS
                                  nl=TRUE), 
@@ -242,7 +320,7 @@ adult.simple.gaussian <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alp
                               inits = "0",  
                               cores=4, 
                               chains=4,
-                              iter=15000, 
+                              iter=5000, 
                               thin=1,
                               refresh=100,
                               control = list(adapt_delta = 0.99, max_treedepth = 18))
@@ -250,6 +328,103 @@ adult.simple.gaussian <- brm(bf(out_p ~ lambdaP*5000 / (1+alphaPA*seeded_a + alp
 adult.simple.gaussian
 saveRDS(adult.simple.gaussian, file="adult.simple.gaussian0714.rds")
 readRDS(adult.simple.gaussian, file="adult.simple.gaussian0714.rds")
+
+## predict and plot COUNTERFACTUALS----
+
+### predict over pm2 (hold seeded_a steady)
+dat.new.adult.max <- expand.grid(
+  seeded_a = max(datp$seeded_a, na.rm=TRUE)
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+dat.new.adult.mean <- expand.grid(
+  seeded_a = mean(datp$seeded_a, na.rm=TRUE) #0
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+dat.new.adult.0 <- expand.grid(
+  seeded_a = 0
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+
+pred.adult.gaussian.0 <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.0, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.0) 
+pred.adult.gaussian.mean <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.mean, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.mean) 
+pred.adult.gaussian.max <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.max, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.max) 
+
+a<-ggplot(data=filter(pred.adult.gaussian.0), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=density_p, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with seeded_a=0")+
+  theme_classic()
+b<-ggplot(data=filter(pred.adult.gaussian.mean), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=density_p, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with mean(seeded_a)")+
+  theme_classic()
+c<-ggplot(data=filter(pred.adult.gaussian.max), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=density_p, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with max(seeded_a)")+
+  theme_classic()
+
+
+# predict over seeded_a (hold pm2 steady)
+
+dat.new.adult.max2 <- expand.grid(
+  seeded_a = seq(0,max(datp$seeded_a), length.out=100)
+  ,density_p = max(datp$density_p, na.rm=TRUE) # 0
+  ,warmtrt = c("amb","warm")
+)
+dat.new.adult.mean2 <- expand.grid(
+  seeded_a = seq(0,max(datp$seeded_a), length.out=100)
+  ,density_p = mean(datp$density_p, na.rm=TRUE) # 0
+  ,warmtrt = c("amb","warm")
+)
+dat.new.adult.02 <- expand.grid(
+  seeded_a = seq(0,max(datp$seeded_a), length.out=100)
+  ,density_p = 0
+  ,warmtrt = c("amb","warm")
+)
+
+
+pred.adult.gaussian.02 <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.02, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.02) 
+pred.adult.gaussian.mean2 <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.mean2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.mean2) 
+pred.adult.gaussian.max2 <- 
+  as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.adult.max2) 
+
+f<-ggplot(data=filter(pred.adult.gaussian.max2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=seeded_a, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with max(pm2)")+
+  theme_classic()
+e<-ggplot(data=filter(pred.adult.gaussian.mean2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=seeded_a, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with mean(pm2)")+
+  theme_classic()
+d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=datp, aes(x=seeded_a, y=out_p), shape=1, width=.25)+
+  ylab("Adult perennial fecundity with pm2=0")+
+  theme_classic()
+
+(a | b | c) / (d | e | f)
+
 
 ## Get parameters ----
 get_variables(adult.simple.gaussian)
@@ -339,6 +514,9 @@ ggplot(subset(datp, comptrt=="none"), aes(x=warmtrt, y=out_p)) +
   geom_jitter(width=.2)+xlab("")+
   ylab("Perennial percapita fecundity no competition")+ 
   theme(text=element_text(size=16))
+
+
+
 
 #old ambient/warm ----
 perennial.lambda <- brm(bf(out_p+1 ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p)+1, # increased scale to 5000
@@ -536,7 +714,7 @@ seedling.simple<- brm(bf(fall20_s|trials(as.integer(seeded_s.g)) ~ lambdaS / (1+
 
 #binomial isn't running, try gaussian just to get some kind of something to work with! 
 seedling.simple.gaussian<- brm(bf(fall20_s/seeded_s.g ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                         lambdaS+alphaSA+alphaSP+alphaSS ~ 1, #1+ (1|block), 
+                         lambdaS+alphaSA+alphaSP+alphaSS ~ warmtrt, #1+ (1|block), 
                          nl=TRUE),
                       family=gaussian,
                       data = subset(dat.sumsurv),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
@@ -544,16 +722,171 @@ seedling.simple.gaussian<- brm(bf(fall20_s/seeded_s.g ~ lambdaS / (1+alphaSA*see
                                 prior(normal(0, .01),    nlpar = "alphaSA"),
                                 prior(normal(0, .01),    nlpar = "alphaSS"),
                                 prior(normal(0, .01),    nlpar = "alphaSP")),
-                      #   inits = "0",  
+                         inits = "0",  
                       cores=4, 
                       chains=4,
-                      iter=15000, 
+                      iter=5000, 
                       thin=5,
-                      control = list(adapt_delta = 0.99, max_treedepth = 18))
-)
-seedling.simple.gaussian
+                      control = list(adapt_delta = 0.995, max_treedepth = 19))
 
-#not working either... try splitting warmtrt and add back bounds
+plot(seedling.simple.gaussian)#not working either... try splitting warmtrt and add back bounds
+
+#try counterfactual plots anyway
+## predict and plot COUNTERFACTUALS----
+
+### predict over pm2 (hold seeded_a and seeded_s steady)
+dat.new.seedling.max <- expand.grid(
+  seeded_a = max(dat.sumsurv$seeded_a, na.rm=TRUE),
+  seeded_s = max(dat.sumsurv$seeded_s, na.rm=T)
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+dat.new.seedling.mean <- expand.grid(
+  seeded_a = mean(dat.sumsurv$seeded_a, na.rm=TRUE),
+  seeded_s = mean(dat.sumsurv$seeded_s, na.rm=T)
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+dat.new.seedling.0 <- expand.grid(
+  seeded_a = 0,
+  seeded_s = 0
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm"))
+
+pred.seedling.gaussian.0 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.0, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.0) 
+pred.seedling.gaussian.mean <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.mean, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.mean) 
+pred.seedling.gaussian.max <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.max, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.max) 
+
+a<-ggplot(data=filter(pred.seedling.gaussian.0), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=density_p, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with seeded_a&seeded_s=0")+
+  theme_classic()
+b<-ggplot(data=filter(pred.seedling.gaussian.mean), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=density_p, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with mean(seeded_a&seeded_s)")+
+  theme_classic()
+c<-ggplot(data=filter(pred.seedling.gaussian.max), aes(x = density_p, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=density_p, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with max(seeded_a&seeded_s)")+
+  theme_classic()
+
+
+# predict over seeded_a (hold density_p and seeded_s steady)
+
+dat.new.seedling.max2 <- expand.grid(
+  seeded_a = seq(0,max(dat.sumsurv$seeded_a), length.out=100)
+  ,density_p = max(dat.sumsurv$density_p, na.rm=TRUE) # 0
+  ,seeded_s = max(dat.sumsurv$seeded_s, na.rm=TRUE)
+  ,warmtrt = c("amb","warm")
+)
+dat.new.seedling.mean2 <- expand.grid(
+  seeded_a = seq(0,max(dat.sumsurv$seeded_a), length.out=100)
+  ,density_p = mean(dat.sumsurv$density_p, na.rm=TRUE) # 0
+  ,seeded_s = mean(dat.sumsurv$seeded_s, na.rm=TRUE)
+  ,warmtrt = c("amb","warm")
+)
+dat.new.seedling.02 <- expand.grid(
+  seeded_a = seq(0,max(dat.sumsurv$seeded_a), length.out=100)
+  ,density_p = 0
+  ,seeded_s = 0
+  ,warmtrt = c("amb","warm")
+)
+
+pred.seedling.gaussian.02 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.02, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.02) 
+pred.seedling.gaussian.mean2 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.mean2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.mean2) 
+pred.seedling.gaussian.max2 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.max2) 
+
+f<-ggplot(data=filter(pred.seedling.gaussian.max2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_a, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with max(density_p&seeded_s)")+
+  theme_classic()
+e<-ggplot(data=filter(pred.seedling.gaussian.mean2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_a, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with mean(density_p&seeded_s)")+
+  theme_classic()
+d<-ggplot(data=filter(pred.seedling.gaussian.02), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_a, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with density_p&seeded_s=0")+
+  theme_classic()
+
+# predict over seeded_s (hold density_p and seeded_a steady)
+
+dat.new.seedling.max2 <- expand.grid(
+  seeded_s = seq(0,max(dat.sumsurv$seeded_s), length.out=100)
+  ,density_p = max(dat.sumsurv$density_p, na.rm=TRUE) # 0
+  ,seeded_a = max(dat.sumsurv$seeded_a, na.rm=TRUE)
+  ,warmtrt = c("amb","warm")
+)
+dat.new.seedling.mean2 <- expand.grid(
+  seeded_s = seq(0,max(dat.sumsurv$seeded_s), length.out=100)
+  ,density_p = mean(dat.sumsurv$density_p, na.rm=TRUE) # 0
+  ,seeded_a = mean(dat.sumsurv$seeded_a, na.rm=TRUE)
+  ,warmtrt = c("amb","warm")
+)
+dat.new.seedling.02 <- expand.grid(
+  seeded_s = seq(0,max(dat.sumsurv$seeded_s), length.out=100)
+  ,density_p = 0
+  ,seeded_a = 0
+  ,warmtrt = c("amb","warm")
+)
+
+pred.seedling.gaussian.02 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.02, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.02) 
+pred.seedling.gaussian.mean2 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.mean2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.mean2) 
+pred.seedling.gaussian.max2 <- 
+  as.data.frame(predict(seedling.simple.gaussian, newdata = dat.new.seedling.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
+  cbind(dat.new.seedling.max2) 
+
+i<-ggplot(data=filter(pred.seedling.gaussian.max2), aes(x = seeded_s, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_s, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with max(density_p&seeded_a)")+
+  theme_classic()
+h<-ggplot(data=filter(pred.seedling.gaussian.mean2), aes(x = seeded_s, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_s, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with mean(density_p&seeded_a)")+
+  theme_classic()
+g<-ggplot(data=filter(pred.seedling.gaussian.02), aes(x = seeded_s, y = Estimate,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+  geom_point()+
+  geom_jitter(data=dat.sumsurv, aes(x=seeded_s, y=fall20_s/seeded_s.g), shape=1, width=.25)+
+  ylab("Seedling survival with density_p&seeded_a=0")+
+  theme_classic()
+
+
+(a | b | c) / (d | e | f) / (g | h | i)
+
+
+
+#try splitting warmtrt and add back bounds
 seedling.simple.gaussian.amb.b<- brm(bf(fall20_s/seeded_s.g ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
                                   lambdaS+alphaSA+alphaSP+alphaSS ~ 1, #1+ (1|block), 
                                   nl=TRUE),
