@@ -54,7 +54,12 @@ vegplot2020[is.na(vegplot2020)] <- 0
 density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time, per_a, per_p, per_s, count_a, count_p, count_s))%>%
   mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
   mutate(pm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_p, count_p/.66))%>%
-  mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))
+  mutate(dpm2=0)%>%
+  mutate(nam2=0)%>%
+   mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))%>%
+  mutate(per_na=0, count_na=0, count_dam_p=0, gopher_spring=0)%>%
+  select(names(density_spring21))
+
 density_spring21 <- right_join(plotkey, dplyr::select(vegplot2021, plotid, time, per_a, per_p, per_na, per_s, count_a, count_p, count_na, count_dam_p, count_s, gopher_spring))%>%
   mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
   mutate(pm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_p, count_p/.66))%>%
@@ -63,6 +68,10 @@ density_spring21 <- right_join(plotkey, dplyr::select(vegplot2021, plotid, time,
   mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))
 #am2, pm2 and sm2 are the relevant data here. 
 #add .g a gopher correction of area for each (NO, it's based on who is actually there)
+
+density_spring<-rbind(density_spring20, density_spring21)%>%
+  mutate(time=ifelse(time=="spring2020", 2020, 2021))
+rm(density_spring20, density_spring21)
 
 
 ### SUMMER SURVIVAL ####
@@ -124,12 +133,12 @@ rm(spr_sur2020, spr_sur2021)
 
 #Annual spring survival
 annual_sprsur<-filter(sprsur, seeded_a!=0)%>%
-  dplyr::select(-seeded_s, -count_s)%>%
+  dplyr::select(-count_s)%>%
   mutate(survival=count_a/seeded_a)
 
 #Seedling spring survival
 seedling_sprsur <-filter(sprsur, seeded_s!=0)%>%
-  dplyr::select(-seeded_a, -count_a)%>%
+  dplyr::select(-count_a)%>%
   mutate(survival=count_s/seeded_s)
 
 
