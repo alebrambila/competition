@@ -51,14 +51,6 @@ plotkey<-select(vegplot, plotid, block, warmtrt, comptrt)
 vegplot2020<-select(vegplot, 18, 19, 1:14)
 vegplot2020[is.na(vegplot2020)] <- 0
 
-density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time, per_a, per_p, per_s, count_a, count_p, count_s))%>%
-  mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
-  mutate(pm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_p, count_p/.66))%>%
-  mutate(dpm2=0)%>%
-  mutate(nam2=0)%>%
-   mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))%>%
-  mutate(per_na=0, count_na=0, count_dam_p=0, gopher_spring=0)%>%
-  select(names(density_spring21))
 
 density_spring21 <- right_join(plotkey, dplyr::select(vegplot2021, plotid, time, per_a, per_p, per_na, per_s, count_a, count_p, count_na, count_dam_p, count_s, gopher_spring))%>%
   mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
@@ -66,6 +58,16 @@ density_spring21 <- right_join(plotkey, dplyr::select(vegplot2021, plotid, time,
   mutate(dpm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_dam_p, count_dam_p/.66))%>%
   mutate(nam2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_na, count_na/.66))%>%
   mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))
+
+
+density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time, per_a, per_p, per_s, count_a, count_p, count_s))%>%
+  mutate(am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_a, count_a/.66))%>%
+  mutate(pm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_p, count_p/.66))%>%
+  mutate(dpm2=0)%>%
+  mutate(nam2=0)%>%
+  mutate(sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), count_s, count_s/.66))%>%
+  mutate(per_na=0, count_na=0, count_dam_p=0, gopher_spring=0)%>%
+  select(names(density_spring21))
 #am2, pm2 and sm2 are the relevant data here. 
 #add .g a gopher correction of area for each (NO, it's based on who is actually there)
 
