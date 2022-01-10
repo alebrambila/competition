@@ -154,7 +154,7 @@ seedling_sprsur <-filter(sprsur, seeded_s!=0)%>%
 #  mutate(plotid=paste(row, column, sub, sep="."))
 
 
-
+ 
 
 phytometers1<-phytometers%>%
   group_by(year_data, year_planted, row, column, sub)%>%
