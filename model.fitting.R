@@ -3,12 +3,16 @@ library(reshape2)
 library(brms)
 library(tidybayes)
 library(modelr)
-library(minpack.lm)
 library(nlstools)
 library(tidyverse)
 library(minpack.lm)
 library(grid)
 library(gridExtra)
+library(ggpubr)
+
+
+# Jeff notes:
+# Alejandro: for seedlings, gaussian not working, but also should try binomial one - maybe more appropriate
 
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -289,48 +293,108 @@ dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a))%>%
   mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
 
 #visualizations----
-p1<-ggplot(dat_p, aes(x=pm2, y=fecundity, color=warmtrt)) +
+p1<-ggplot(dat_p, aes(x=pm2, y=fecundity, color=time)) +
   geom_jitter(aes(shape=time))+
-  geom_smooth(aes(group=time), method = 'lm',formula = y ~ x , se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+
+  geom_smooth(aes(linetype=time), method = 'lm',formula = y ~ x , se=F)+
+  # scale_colour_manual(values = c("dodgerblue", "darkred"))+
   labs(x="adult perennial density", y="adult perennial fecundity")
 
-p2<-ggplot(dat_p, aes(x=seeded_a, y=fecundity, color=warmtrt)) +
+p2<-ggplot(dat_p, aes(x=seeded_a, y=fecundity, color=time)) + # warmtrt
   geom_jitter(aes(shape=time))+
-  geom_smooth(aes(group=time), method = 'lm',formula = y ~ x, se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+
+  geom_smooth(aes(linetype=time), method = 'lm',formula = y ~ x, se=F)+
+  # scale_colour_manual(values = c("dodgerblue", "darkred"))+
   labs(x="annual seeds in", y="adult perennial fecundity")
 
 ggarrange(p1, p2, common.legend = T)
 
 
-table(dat_p$warmtrt, datp$block)
-table(dat_p$warmtrt, datp$comptrt)
-
 dat_p$warmtrt <- as.factor(dat_p$warmtrt)
 
 #Fit BRM----
+
+head(dat_p)
+hist(dat_p$fecundity)
+hist(dat_p$pm2)
+hist(dat_p$seeded_a)
+
+# make scaled version - model runs great if you use these; just complicates interpretation
+dat_p$fecundity_scaled <- as.vector(scale(dat_p$fecundity))
+dat_p$seeded_a_scaled <- as.vector(scale(dat_p$seeded_a))
+dat_p$pm2_scaled <- as.vector(scale(dat_p$pm2))
+
+
+# find reasonable possible param values by fitting simple nls model
+eq1 <- function(x1,x2, lam, pa, pp) {
+  lam/(1+ pa*x1 + pp*x2)
+}
+eq1(2,2, 10, 3,3)  # testing the equation works: 3^2 + 1 = 10
+
+m.nls <- nls(fecundity ~ eq1(seeded_a, pm2, lam,pa,pp), data = dat_p, start = list(lam=20000, pa = 1, pp = 1), trace = F)
+summary(m.nls)
+
+# lam=15570
+# pa=.0007
+# pp=0.09
+
+# graph nls results 
+# not working - need to troubleshoot
+# seeded.sim <- seq(from = 0, to = 1500, length = 100)
+# pm.sim <- seq(from = 0, to = 10, length = 100)
+# plot(dat_p$seeded_a, dat_p$fecundity)
+# pred1 <- predict(m.nls, list(x1 = seeded.sim, x2=pm.sim))
+# lines(seeded.sim, pred1, col = "green")
+
+
+# alt way to graph
+# check out reasonable possible param values
+ggplot(dat_p, aes(x= seeded_a, y=fecundity)) +
+  geom_point() +
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x), # BH
+              method.args = list(start = list(a = 20000, b = .1)),
+              se = FALSE, 
+              color='orange')
+
+# check out reasonable possible param values
+ggplot(dat_p, aes(x= pm2, y=fecundity)) +
+  geom_point() +
+  stat_smooth(method = "nls",
+              formula = y ~ a/(1+b*x), # BH
+              method.args = list(start = list(a = 20000, b = .1)),
+              se = FALSE, 
+              color='orange')
+
 ### 2.1 Perennial fecundity scaled
 # new SIMPLE
-adult.simple.gaussian <- brm(bf(fecundity ~ lambdaP*15000 / (1+alphaPA*seeded_a + alphaPP*pm2), # increased scale to 5000
-                                 lambdaP + alphaPA + alphaPP ~ warmtrt+ (1|time),
-                                 nl=TRUE), 
-                              data = dat_p,
-                              family = gaussian, 
-                             prior = c(prior(normal(1, 3),nlpar = "lambdaP"), 
-                                       prior(normal(0, .1), nlpar = "alphaPA"),
-                                       prior(normal(0, 1), nlpar = "alphaPP")),
-                              inits = "0",  
-                              cores=4, 
-                              chains=4,
-                              iter=15000, 
-                              thin=10,
-                              refresh=100,
-                              control = list(adapt_delta = 0.99, max_treedepth = 19))
 
+adult.simple.gaussian <- brm(bf(fecundity/1000 ~ 20000*lambdaP / (1+alphaPA*seeded_a + alphaPP*pm2), # lambdaP*20000
+  lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), # works without time...
+    nl=TRUE), 
+    data = dat_p,
+    family = gaussian, 
+    prior = c(prior(normal(0, 1),nlpar = "lambdaP"), 
+    prior(normal(.001, .01), nlpar = "alphaPA"),
+    prior(normal(.1, .1), nlpar = "alphaPP")),
+    inits = "0",  
+    cores=3, 
+    chains=3,
+    iter=10000, 
+    thin=2,
+    # control = list(adapt_delta = 0.99, max_treedepth = 19),
+    refresh=100,
+)
+
+conditional_effects(adult.simple.gaussian)
+adult.simple.gaussian
 plot(adult.simple.gaussian)
-saveRDS(adult.simple.gaussian, file="p_11_09.rds")
+saveRDS(adult.simple.gaussian, file="adult_simple_JD.rds")
 #readRDS(adult.simple.gaussian, file="p_11_09.rds")
+
+# Plot model results - JD - need to remember how to do this, and how to back-convert the parameters and predictions given the transformations in the model
+
+
+
+
 
 ## predict and plot COUNTERFACTUALS----
 
@@ -639,6 +703,7 @@ s3<-ggplot(seedlings, aes(x=seeded_a, y=fall.g/seeded_s, color=warmtrt)) +
 
 ggarrange(s1, s2, s3, common.legend = T, nrow=1, ncol=3)
 
+# model: fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
 
 ### 3.1 Simple (seeds in:adults out) perennial seedlings binomial ----
 seedling.binomial<- brm(bf(as.integer(fall.g)|trials(as.integer(seeded_s)) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
@@ -659,23 +724,36 @@ seedling.binomial<- brm(bf(as.integer(fall.g)|trials(as.integer(seeded_s)) ~ lam
 
 
 #Gaussian alternative 
-seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
+fall.g/seeded_s
+
+# seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
+                                  
+# eq2 <- function(x1,x2,x3, lam, sa, ss, sp) {
+#   lam/(1+ sa*x1 + ss*x2 + sp*x3)
+# }
+# m2.nls <- nls(fall.g/seeded_s ~ eq2(seeded_a, seeded_s, pm2, lam,sa, ss, sp), data = seedlings, start = list(lam=.03, sa = 1, ss = 1, sp=1), trace = F)
+# summary(m2.nls)
+
+
+seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a/100 + alphaSS*seeded_s/1000 + alphaSP*pm2), 
                                   lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
                                   nl=TRUE),
                       family=gaussian,
                       data = seedlings,   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                      prior = c(prior(normal(.05, .05), nlpar = "lambdaS"), 
-                                prior(normal(0, .01),    nlpar = "alphaSA"),
-                                prior(normal(0, .01),    nlpar = "alphaSS"),
-                                prior(normal(0, .01),    nlpar = "alphaSP")),
+                      prior = c(prior(normal(.05, .1), nlpar = "lambdaS"), 
+                                prior(normal(0.1, .1),    nlpar = "alphaSA"),
+                                prior(normal(0.1, .1),    nlpar = "alphaSS"),
+                                prior(normal(0.1, .1),    nlpar = "alphaSP")),
                          inits = "0",  
-                      cores=4, 
-                      chains=4,
+                      cores=3, 
+                      chains=3,
                       iter=5000, 
-                      thin=5,
+                      thin=2,
                       control = list(adapt_delta = 0.995, max_treedepth = 19))
 
-plot(seedling.simple.gaussian)#not working either... try splitting warmtrt and add back bounds
+plot(seedling.simple.gaussian)
+seedling.simple.gaussian
+
 
 #try counterfactual plots anyway
 ## predict and plot COUNTERFACTUALS----
