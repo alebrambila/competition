@@ -104,8 +104,8 @@ plot(annual.simple.gaussian)
 # pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
 # pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
 
-saveRDS(annual.simple.gaussian, file="a_11_09.rds")
-#annual.simple.gaussian<-readRDS(file="a_11_09.rds")
+saveRDS(annual.simple.gaussian, file="a020122.rds")
+#annual.simple.gaussian<-readRDS(file="a020122.rds")
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
 
@@ -368,7 +368,7 @@ ggplot(dat_p, aes(x= pm2, y=fecundity)) +
 # new SIMPLE
 
 adult.simple.gaussian <- brm(bf(fecundity/1000 ~ 20000*lambdaP / (1+alphaPA*seeded_a + alphaPP*pm2), # lambdaP*20000
-  lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), # works without time...
+  lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
     nl=TRUE), 
     data = dat_p,
     family = gaussian, 
@@ -378,17 +378,18 @@ adult.simple.gaussian <- brm(bf(fecundity/1000 ~ 20000*lambdaP / (1+alphaPA*seed
     inits = "0",  
     cores=3, 
     chains=3,
-    iter=10000, 
+    iter=15000, 
     thin=2,
-    # control = list(adapt_delta = 0.99, max_treedepth = 19),
+     control = list(adapt_delta = 0.9, max_treedepth = 16),
     refresh=100,
 )
 
 conditional_effects(adult.simple.gaussian)
 adult.simple.gaussian
 plot(adult.simple.gaussian)
-saveRDS(adult.simple.gaussian, file="adult_simple_JD.rds")
-#readRDS(adult.simple.gaussian, file="p_11_09.rds")
+#saveRDS(adult.simple.gaussian, file="adult_simple_JD.rds")
+saveRDS(adult.simple.gaussian, file="p020422.rds")
+#readRDS(adult.simple.gaussian, file="p020122.rds")
 
 # Plot model results - JD - need to remember how to do this, and how to back-convert the parameters and predictions given the transformations in the model
 
@@ -422,20 +423,21 @@ pred.adult.gaussian.max <-
   as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.max, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.adult.max) 
 
-a<-ggplot(data=filter(pred.adult.gaussian.0), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+#add in estimate*1000 to get scaling corrected.
+a<-ggplot(data=filter(pred.adult.gaussian.0), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with seeded_a=0")+
   theme_classic()
-b<-ggplot(data=filter(pred.adult.gaussian.mean), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+b<-ggplot(data=filter(pred.adult.gaussian.mean), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with mean(seeded_a)")+
   theme_classic()
-c<-ggplot(data=filter(pred.adult.gaussian.max), aes(x = pm2, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+c<-ggplot(data=filter(pred.adult.gaussian.max), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with max(seeded_a)")+
@@ -471,20 +473,20 @@ pred.adult.gaussian.max2 <-
   as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.adult.max2) 
 
-f<-ggplot(data=filter(pred.adult.gaussian.max2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+f<-ggplot(data=filter(pred.adult.gaussian.max2), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with max(pm2)")+
   theme_classic()
-e<-ggplot(data=filter(pred.adult.gaussian.mean2), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+e<-ggplot(data=filter(pred.adult.gaussian.mean2), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*10005, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with mean(pm2)")+
   theme_classic()
-d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_a, y = Estimate,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5, ymax=Q95, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with pm2=0")+
@@ -739,7 +741,7 @@ seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_
                                   lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
                                   nl=TRUE),
                       family=gaussian,
-                      data = seedlings,   #running this with limited dataset as in teh figures above (only in seedling comptrts)
+                      data = seedlings,   #running this with limited dataset as in the figures above (only in seedling comptrts)
                       prior = c(prior(normal(.05, .1), nlpar = "lambdaS"), 
                                 prior(normal(0.1, .1),    nlpar = "alphaSA"),
                                 prior(normal(0.1, .1),    nlpar = "alphaSS"),
@@ -753,8 +755,8 @@ seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_
 
 plot(seedling.simple.gaussian)
 seedling.simple.gaussian
-
-
+saveRDS(seedling.simple.gaussian, file="s020122.rds")
+#readRDS(seedling.simple.gaussian, file="s020122.rds")
 #try counterfactual plots anyway
 ## predict and plot COUNTERFACTUALS----
 
