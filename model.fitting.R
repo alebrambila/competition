@@ -342,7 +342,14 @@ ggplot(dat_p, aes(x= pm2, y=fecundity)) +
 ### 2.1 Perennial fecundity scaled
 # new SIMPLE
 
-adult.simple.gaussian <- brm(bf(fecundity/20000 ~ lambdaP / (1+alphaPA*seeded_a + alphaPP*pm2), # lambdaP*20000
+#dat_p tibble is the one to use for modeling
+#each row is for an adult phytometer
+#uses mostly the same column names as above
+#type is an important column - previously we have only run this with type="adult".  
+# the other types present are adult_g (obviously damaged by gophers) and newadult (a seedling that has become an adult)
+
+
+adult.simple.gaussian <- brm(bf(fecundity/20000 ~ lambdaP / (1+alphaPA*seeded_am2 + alphaPP*pm2), # lambdaP*20000
   lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
     nl=TRUE), 
     data = dat_p,
@@ -713,7 +720,7 @@ fall.g/seeded_s
 #now the model runs off of pm2, but it could be adapted for dpm2, nam2, or starting pm2 - see how their fecundities vary below:
 
 
-seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a/100 + alphaSS*seeded_s/1000 + alphaSP*pm2), #update data terms with new from above
+seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_am2/100 + alphaSS*seeded_sm2/1000 + alphaSP*pm2), #update data terms with new from above
                                   lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
                                   nl=TRUE),
                       family=gaussian,
