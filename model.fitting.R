@@ -22,33 +22,23 @@ source('data.cleaning.R')
 # simulation of an annual (Lolium multiflorum) and perennial (Festuca roemeri) in competition at various densities.
 #  Here I estimate the inherent growth rates and competition coefficients in both warmed and ambient plots.
 
-#Models 
-# 1 Simple (seeds in:out) annuals percapita and scaled
-# 2 Perennial fecundity scaled
-# 3.1 Simple (seeds in:adults out) perennial seedlings binomial
-# 3.2 Simple (seeds in:adults out) perennial seedlings gaussian
-
-
 ###### 1. SIMPLE ANNUALS: SEEDS-IN:SEEDS-OUT ----
-### data----
+## annual modeling uses the tibble, 'annuals' from 'data.cleaning.r'. 
 
-annuals<-left_join(mutate(fecundity_plot_a, time=ifelse(time=="spring2020", 2020, 2021)), select(annual_sprsur, -row, -column, -block, -sub, -warmtrt, -comptrt))
-annuals<-left_join(annuals, plotkey)
-annuals<-left_join(annuals, density_spring)%>%
-  mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, seeded_a)))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
-  mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="seedling perennials", 4500, seeded_s))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
-  mutate(plotseeds=seeds*count_a)%>%
-  mutate(time=as.factor(time))
-
-annuals$block <- as.factor(annuals$block)
-annuals$percap <- annuals$plotseeds/annuals$seeded_a
-
+# seeded_a refers to the actual number of annual seeds added, regardless of gopher damage
+#percap is the number seeds out/ seeds in
+#seeded_am2 refers to the number of seeds added/m2
+# pm2 refers to the m2 density of ACTUAL adult perrennials in the plot
+#starting_pm2 refers to the density/m2 of adult perennials that should have been in the plot ignoring gophers - the only source of adult mortality over the experiment
+# dpm2 refers to the number of damaged adult perennials per meter square
+# nam2 refers to the number of 'new adults' per meter square, seedlings that were left as phytometers to see in the next year
+#now the model runs off of pm2, but it could be adapted for dpm2, nam2, or starting pm2 
 
 ### visualize ----
 ggplot(annuals, aes(x=seeded_a, y=pm2, color=warmtrt)) +
-  geom_point(aes(shape=comptrt))+facet_wrap(~time)+
+  geom_jitter()+facet_wrap(~time)#+
  # geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))
+ # scale_colour_manual(values = c("dodgerblue", "darkred"))
  
 # JD: look at data
 head(annuals); dim(annuals)
@@ -71,17 +61,10 @@ ggplot(subset(annuals), aes(x=seeded_s, y=percap, color=warmtrt)) +
   geom_jitter(aes(shape=as.factor(time)), width=.5)+scale_colour_manual(values = c("dodgerblue", "darkred"))+
   geom_smooth(method = 'lm',formula = y ~ x , se=F)+xlab("perennial seeds in")#+ylab("annual percapita seeds out")
 
-
-
-
-#ggplot(annuals, aes(x=pm2, y=seeded_a, color=percap)) +
-#  geom_jitter(aes(shape=comptrt), height=50)+
-#  scale_color_gradient(low = "blue", high = "red", na.value = NA)
-
 ### BRM fits ----
-#new SIMPLE annual gaussian (no block/alphaAS)
+#Simple annual gaussian model (no block/alphaAS)
 #annuals.sc <- mutate(annuals, seeded_a=seeded_a/1000)
-annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2), # + alphaAS*seeded_s 
+annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*pm2), # + alphaAS*seeded_s #switched seeded_a to seeded_am2 to get density, not sure if to switch pm2 to starting_pm2
                                  lambdaA + alphaAA + alphaAP ~ warmtrt + (1|time),
                                  nl=TRUE), 
                               data = annuals,
@@ -280,17 +263,10 @@ bev.annuals2 <- function(x, lam, AA,AP,N_A) {lam  / (1+AA*N_A + AP*x)} # Beverto
 
 
 
+
 ################################
 ### 2. ADULT PERENNIAL FECUNDITY ----
-
-#data ----
-dat_p<-left_join(subset(mutate(fecundity_phyt_p, time=year_data), type=="adult"), density_spring)%>%
-  mutate(fecundity=seeds)%>%
-  ungroup()%>%
-  mutate(time=as.factor(time))%>%
-  select(plotid, time,  warmtrt, comptrt, id, fecundity,25:29)
-dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a))%>%
-  mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
+#dat_p is the tibble from data.cleaning here
 
 #visualizations----
 p1<-ggplot(dat_p, aes(x=pm2, y=fecundity, color=time)) +
@@ -308,7 +284,6 @@ p2<-ggplot(dat_p, aes(x=seeded_a, y=fecundity, color=time)) + # warmtrt
 ggarrange(p1, p2, common.legend = T)
 
 
-dat_p$warmtrt <- as.factor(dat_p$warmtrt)
 
 #Fit BRM----
 
@@ -367,7 +342,7 @@ ggplot(dat_p, aes(x= pm2, y=fecundity)) +
 ### 2.1 Perennial fecundity scaled
 # new SIMPLE
 
-adult.simple.gaussian <- brm(bf(fecundity/1000 ~ 20000*lambdaP / (1+alphaPA*seeded_a + alphaPP*pm2), # lambdaP*20000
+adult.simple.gaussian <- brm(bf(fecundity/20000 ~ lambdaP / (1+alphaPA*seeded_a + alphaPP*pm2), # lambdaP*20000
   lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
     nl=TRUE), 
     data = dat_p,
@@ -388,8 +363,10 @@ conditional_effects(adult.simple.gaussian)
 adult.simple.gaussian
 plot(adult.simple.gaussian)
 #saveRDS(adult.simple.gaussian, file="adult_simple_JD.rds")
-saveRDS(adult.simple.gaussian, file="p020422.rds")
+saveRDS(adult.simple.gaussian, file="p021022.rds")
 #readRDS(adult.simple.gaussian, file="p020122.rds")
+
+
 
 # Plot model results - JD - need to remember how to do this, and how to back-convert the parameters and predictions given the transformations in the model
 
@@ -424,20 +401,20 @@ pred.adult.gaussian.max <-
   cbind(dat.new.adult.max) 
 
 #add in estimate*1000 to get scaling corrected.
-a<-ggplot(data=filter(pred.adult.gaussian.0), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+a<-ggplot(data=filter(pred.adult.gaussian.0), aes(x = pm2, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1500, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with seeded_a=0")+
   theme_classic()
-b<-ggplot(data=filter(pred.adult.gaussian.mean), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+b<-ggplot(data=filter(pred.adult.gaussian.mean), aes(x = pm2, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1500, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with mean(seeded_a)")+
   theme_classic()
-c<-ggplot(data=filter(pred.adult.gaussian.max), aes(x = pm2, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+c<-ggplot(data=filter(pred.adult.gaussian.max), aes(x = pm2, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1500, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=pm2, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with max(seeded_a)")+
@@ -473,20 +450,20 @@ pred.adult.gaussian.max2 <-
   as.data.frame(predict(adult.simple.gaussian, newdata = dat.new.adult.max2, allow_new_levels=TRUE, probs=c(.05,.5,.95)))  %>%
   cbind(dat.new.adult.max2) 
 
-f<-ggplot(data=filter(pred.adult.gaussian.max2), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+f<-ggplot(data=filter(pred.adult.gaussian.max2), aes(x = seeded_a, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1500, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with max(pm2)")+
   theme_classic()
-e<-ggplot(data=filter(pred.adult.gaussian.mean2), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*10005, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+e<-ggplot(data=filter(pred.adult.gaussian.mean2), aes(x = seeded_a, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*5000, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with mean(pm2)")+
   theme_classic()
-d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_a, y = Estimate*1000,  color=warmtrt)) + 
-  geom_smooth(aes(ymin=Q5*1000, ymax=Q95*1000, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
+d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_a, y = Estimate*1500,  color=warmtrt)) + 
+  geom_smooth(aes(ymin=Q5*1500, ymax=Q95*1500, fill=warmtrt), stat="identity", alpha = 1/5, size = 1/4) +
   geom_point()+
   geom_jitter(data=dat_p, aes(x=seeded_a, y=fecundity), shape=1, width=.25)+
   ylab("Adult perennial fecundity with pm2=0")+
@@ -675,16 +652,6 @@ savedPLL<-perennial.lambda.logscale
 
 #############################################
 ### 3. PERENNIAL SEEDLINGS  ----
-#data ----
-
-seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12), select(seedling_sumsur, plotid, time, 6:10))
-seedlings<-left_join(seedlings0, plotkey)%>%
-  filter(!is.na(spring))%>%
-  mutate(time=as.factor(time))%>%
-  mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="seedlings+adults", 0, seeded_a))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
-    mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="annuals+adults", 0, seeded_s)))) # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   dat.sprsurv.000<-left_join(dat.sprsurv.00, select(dat_p, plotid, time, pm2))%>%
-seedlings<-left_join(seedlings, select(mutate(dat_p, time=as.factor(time)), plotid, time, pm2))%>%
-  mutate(pm2=ifelse(is.na(pm2), 0, pm2))
 
 #vizualisation ----
 
@@ -708,21 +675,21 @@ ggarrange(s1, s2, s3, common.legend = T, nrow=1, ncol=3)
 # model: fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
 
 ### 3.1 Simple (seeds in:adults out) perennial seedlings binomial ----
-seedling.binomial<- brm(bf(as.integer(fall.g)|trials(as.integer(seeded_s)) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
-                           lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
-                           nl=TRUE),
-                        family=binomial,
-                        data = seedlings,  
-                        prior = c(prior(normal(0.05, .05),nlpar = "lambdaS"), 
-                                  prior(normal(0, .1), nlpar = "alphaSA"),
-                                  prior(normal(0, .1), nlpar = "alphaSS"),
-                                  prior(normal(0, .1), nlpar = "alphaSP")),
-                     #   inits = "0",  
-                        cores=4, 
-                        chains=4,
-                        iter=5000, 
-                        thin=1,
-                        control = list(adapt_delta = 0.95, max_treedepth = 16))
+#seedling.binomial<- brm(bf(as.integer(fall.g)|trials(as.integer(seeded_s)) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
+#                           lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
+#                          nl=TRUE),
+#                        family=binomial,
+#                        data = seedlings,  
+#                        prior = c(prior(normal(0.05, .05),nlpar = "lambdaS"), 
+##                                  prior(normal(0, .1), nlpar = "alphaSA"),
+#                                prior(normal(0, .1), nlpar = "alphaSS"),
+#                                  prior(normal(0, .1), nlpar = "alphaSP")),
+#                     #   inits = "0",  
+#                        cores=4, 
+#                        chains=4,
+#                        iter=5000, 
+#                        thin=1,
+#                        control = list(adapt_delta = 0.95, max_treedepth = 16))
 
 
 #Gaussian alternative 
@@ -736,8 +703,17 @@ fall.g/seeded_s
 # m2.nls <- nls(fall.g/seeded_s ~ eq2(seeded_a, seeded_s, pm2, lam,sa, ss, sp), data = seedlings, start = list(lam=.03, sa = 1, ss = 1, sp=1), trace = F)
 # summary(m2.nls)
 
+#seedlings is the one to use for modeling
+# seeded_a refers to the actual number of annual seeds added, regardless of gopher damage
+#percap is the number seeds out/ seeds in
+#seeded_am2 refers to the number of seeds added/m2# pm2 refers to the m2 density of ACTUAL adult perrennials in the plot
+#starting_pm2 refers to the density/m2 of adult perennials that should be in the plot ignoring gophers
+# dpm2 refers to the number of damaged adult perennials per meter square
+# nam2 refers to the number of 'new adults' per meter square, seedlings that were left as phytometers to see in the next year
+#now the model runs off of pm2, but it could be adapted for dpm2, nam2, or starting pm2 - see how their fecundities vary below:
 
-seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a/100 + alphaSS*seeded_s/1000 + alphaSP*pm2), 
+
+seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a/100 + alphaSS*seeded_s/1000 + alphaSP*pm2), #update data terms with new from above
                                   lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
                                   nl=TRUE),
                       family=gaussian,

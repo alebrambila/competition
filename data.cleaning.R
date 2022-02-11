@@ -72,7 +72,12 @@ density_spring20 <- right_join(plotkey, dplyr::select(vegplot2020, plotid, time,
 #add .g a gopher correction of area for each (NO, it's based on who is actually there)
 
 density_spring<-rbind(density_spring20, density_spring21)%>%
-  mutate(time=ifelse(time=="spring2020", 2020, 2021))
+  mutate(time=ifelse(time=="spring2020", 2020, 2021))%>%
+  mutate(starting_pm2=ifelse(comptrt%in%c("none", "annuals", "seedling perennials"), 2, 
+                             ifelse(comptrt=="adult perennials", 10, 
+                                    ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+adults", 4/.66, 0))))%>%
+  mutate(lost_pm2=starting_pm2-pm2)
+
 rm(density_spring20, density_spring21)
 
 
@@ -111,27 +116,35 @@ seedling_sumsur<-right_join(plotkey, seedling_sumsur)
 rm(seedling_sumsur2020, seedling_sumsur2021)
 
 
-#### SPRING SURVIVAL ####
+#### SPRING SURVIVAL #### 
 spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
-  filter(comptrt!="none"&comptrt!="adult perennials")%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
                          ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
   mutate(seeded_a=ifelse(comptrt=="annuals", 310*6, # from online lit: 3.2-5g/1000 seeds
                          ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 310*2, 0)))%>%
-  mutate(time=2020)
+  mutate(time=2020)%>%
+  mutate(gopher_spring=0)
  
 spr_sur2021<-select(vegplot2021, plotid, time, 1:6, count_s, count_a, gopher_spring)%>%
-  filter(comptrt!="none"&comptrt!="adult perennials")%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
                          ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
   mutate(seeded_a=ifelse(comptrt=="annuals", 310*6,
                          ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 310*2, 0)))%>%
-  mutate(time=2021)%>%
-  mutate(seeded_s=seeded_s*gopher_spring, seeded_a=seeded_a*gopher_spring)%>%
-  select(-gopher_spring)
+  mutate(time=2021)
+# Alejandro - here is where I was doing a gopher correction that we decided to drop out
+# Seeded are once again just what was actually seeded
+# I left in the gopher_spring column that tells you what proportion if there was any gopher damage. 
+
+# mutate(seeded_s=seeded_s*gopher_spring, seeded_a=seeded_a*gopher_spring)%>%  
+#  select(-gopher_spring)
   
-sprsur<-rbind(spr_sur2020, spr_sur2021)
+sprsur<-rbind(spr_sur2020, spr_sur2021)%>%
+  mutate(seeded_am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), seeded_a, seeded_a/.66))%>%
+  mutate(seeded_sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), seeded_s, seeded_s/.66))
+  
+
 rm(spr_sur2020, spr_sur2021)
+
 
 #Annual spring survival
 annual_sprsur<-filter(sprsur, seeded_a!=0)%>%
@@ -154,8 +167,6 @@ seedling_sprsur <-filter(sprsur, seeded_s!=0)%>%
 #  mutate(plotid=paste(row, column, sub, sep="."))
 
 
- 
-
 phytometers1<-phytometers%>%
   group_by(year_data, year_planted, row, column, sub)%>%
   mutate(plotid=paste(row, column, sub, sep="."))%>%
@@ -175,9 +186,6 @@ phytometers2<-left_join(phytometers1, plotkey)#%>%
   #  select(-1, -8, -date, -starting_height, -starting_cir)%>%
   mutate(type=substr(id, 1, 1), id=substr(id, 2, 2))%>%
   
-#visualize plugs, new adults, and existing adults (damaged, vs good)
-ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2, y=tillers)) + geom_boxplot(aes(fill=comptrt))
-ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2)) + geom_histogram(stat="count")  
 
 
 fecundity<-select(phytometers1, plotid, type, id, tillers, type2)%>% 
@@ -189,7 +197,7 @@ fecundity<-select(phytometers1, plotid, type, id, tillers, type2)%>%
   mutate(seeds=ifelse(type=="annual", tillers*18*10.6, tillers*25.5*6)) #lolium: 30 spikelets w/ up to 8-20 florets, festuca 25 spikelets with 6 florets
 rm(phytometers1)
 
-#ANNUALS DATA
+#ANNUALS FECUNDITY
 # annual seed production per capita
 fecundity_plot_a2020<-select(vegplot2020, plotid, time, count_a, til_a)%>%
   filter(count_a>0)%>%
@@ -204,12 +212,68 @@ fecundity_plot_a<-rbind(fecundity_plot_a2020, fecundity_plot_a2021)
 #annual phytometers
 fecundity_phyt_a <- filter(fecundity, type=="annual") # phytometers
 
+### DATA FOR MODELS IN MODEL.FITTING.R:
+annuals<-left_join(mutate(fecundity_plot_a, time=ifelse(time=="spring2020", 2020, 2021)), select(sprsur, -row, -column, -block, -sub, -warmtrt, -comptrt))
+annuals<-left_join(annuals, plotkey)
+annuals<-left_join(annuals, density_spring)%>%
+  mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 66, ifelse(comptrt=="adult perennials", 132, seeded_a)))%>% # add in seeded_a for adult , none and seediling, treatment
+  mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 66, ifelse(comptrt=="adult perennials", 132, ifelse(comptrt=="seedling perennials", 4500, seeded_s))))%>% # add in seeded_s for adult  , none and seediling,treatment
+  mutate(plotseeds=seeds*count_a)%>%
+  mutate(time=as.factor(time))
+
+annuals$block <- as.factor(annuals$block)
+annuals$percap <- annuals$plotseeds/annuals$seeded_a
+#annuals tibble is the one to use for modeling
+#each row is for a plot
+# seeded_a refers to the actual number of annual seeds added, regardless of gopher damage
+#percap is the number seeds out/ seeds in
+#seeded_am2 refers to the number of seeds added/m2# pm2 refers to the m2 density of ACTUAL adult perrennials in the plot
+#starting_pm2 refers to the density/m2 of adult perennials that should be in the plot ignoring gophers
+# dpm2 refers to the number of damaged adult perennials per meter square
+# nam2 refers to the number of 'new adults' per meter square, seedlings that were left as phytometers to see in the next year
+#now the model runs off of pm2, but it could be adapted for dpm2, nam2, or starting pm2 - see how their fecundities vary below:
+
+ggplot(subset(phytometers2, type=="adult"|type=="plug"|type=="newadult"), aes(x=type2)) + geom_histogram(stat="count")  
+
+
+
 #PERENNIAL FECUNDITY
 # plug seed production per capita
 fecundity_phyt_p <-filter(fecundity, type!="annual") #phytometers
 
+### DATA FOR MODELS IN MODEL.FITTING.R:
+dat_p<-left_join(subset(mutate(fecundity_phyt_p, time=year_data), type!="plug"), density_spring)%>%
+  mutate(fecundity=seeds)%>%
+  ungroup()%>%
+  mutate(time=as.factor(time))%>%
+  select(plotid, time,  warmtrt, comptrt, id, fecundity,25:29)
+dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a))%>%
+  mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
+
+dat_p$warmtrt <- as.factor(dat_p$warmtrt)
+
+
+#dat_p tibble is the one to use for modeling
+#each row is for an adult phytometer
+#uses mostly the same column names as above
+#type is an important column - previously we have only run this with type="adult".  
+  # the other types present are adult_g (obviously damaged by gophers) and newadult (a seedling that has become an adult)
+
+#SEEDLING SURVIVAL
+### DATA FOR MODELS IN MODEL.FITTING.R:
+
+seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12, seeded_am2, seeded_sm2), select(seedling_sumsur, plotid, time, 6:10))
+seedlings<-left_join(seedlings0, plotkey)%>%
+  filter(!is.na(spring))%>%
+  mutate(time=as.factor(time))%>%
+  mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="seedlings+adults", 0, seeded_a))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
+  mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="annuals+adults", 0, seeded_s)))) # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   dat.sprsurv.000<-left_join(dat.sprsurv.00, select(dat_p, plotid, time, pm2))%>%
+seedlings<-left_join(seedlings, select(mutate(dat_p, time=as.factor(time)), plotid, time, pm2, starting_pm2, dpm2, nam2, lost_pm2))%>%
+  mutate(pm2=ifelse(is.na(pm2), 0, pm2))
+
+#seedlings is the one to use for modeling
+#same column names as before
+#
+
 rm(phytometers, vegplot, vegplot2020, vegplot2021, fecundity_plot_a2020, fecundity_plot_a2021, phytometers2, sprsur2020s, sumsur2020s)
 
-
-#test!t
-#test2!
