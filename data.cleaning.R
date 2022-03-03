@@ -179,12 +179,7 @@ phytometers1<-phytometers%>%
 phytometers1$type2 <- factor(phytometers1$type2, levels = c("plug_2019", "plug_2020", "plug_2021", "gopherplug_2021", "newadult_2021"))
 
 #phytometers2, to compare differences between different types of adults (over time, damaged, new)
-phytometers2<-left_join(phytometers1, plotkey)#%>%
-  mutate(growth=veg_height-starting_height)%>%
-  mutate(widening=circumference-starting_cir)%>%
-  mutate(veg_height=ifelse(is.na(veg_height), rep_height, veg_height))%>%
-  #  select(-1, -8, -date, -starting_height, -starting_cir)%>%
-  mutate(type=substr(id, 1, 1), id=substr(id, 2, 2))%>%
+phytometers2<-left_join(phytometers1, plotkey)
   
 
 
@@ -195,7 +190,6 @@ fecundity<-select(phytometers1, plotid, type, id, tillers, type2)%>%
   filter(!is.na(tillers))%>%
   select(-type2)%>%
   mutate(seeds=ifelse(type=="annual", tillers*18*10.6, tillers*25.5*6)) #lolium: 30 spikelets w/ up to 8-20 florets, festuca 25 spikelets with 6 florets
-rm(phytometers1)
 
 #ANNUALS FECUNDITY
 # annual seed production per capita
@@ -219,10 +213,13 @@ annuals<-left_join(annuals, density_spring)%>%
   mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 66, ifelse(comptrt=="adult perennials", 132, seeded_a)))%>% # add in seeded_a for adult , none and seediling, treatment
   mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 66, ifelse(comptrt=="adult perennials", 132, ifelse(comptrt=="seedling perennials", 4500, seeded_s))))%>% # add in seeded_s for adult  , none and seediling,treatment
   mutate(plotseeds=seeds*count_a)%>%
-  mutate(time=as.factor(time))
+  mutate(time=as.factor(time))%>%
+  mutate(seeded_am2=ifelse(seeded_am2<am2, am2, seeded_am2))%>%
+  mutate(seeded_am2=as.integer(ifelse(seeded_am2<seeded_a, seeded_a, seeded_am2)))
+
 
 annuals$block <- as.factor(annuals$block)
-annuals$percap <- annuals$plotseeds/annuals$seeded_a
+annuals$percap <- annuals$plotseeds/annuals$seeded_am2
 #annuals tibble is the one to use for modeling
 #each row is for a plot
 # seeded_a refers to the actual number of annual seeds added, regardless of gopher damage
@@ -247,11 +244,13 @@ dat_p<-left_join(subset(mutate(fecundity_phyt_p, time=year_data), type!="plug"),
   ungroup()%>%
   mutate(time=as.factor(time))%>%
   select(plotid, time,  warmtrt, comptrt, id, fecundity,25:29)
-dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a))%>%
-  mutate(seeded_a=ifelse(is.na(seeded_a), 8, seeded_a))
-
+dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a, seeded_am2, starting_pm2))%>%
+  mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 66, ifelse(comptrt=="adult perennials", 132, ifelse(comptrt=="seedlings+adults"&is.na(seeded_am2), 0, seeded_am2))))%>%
+  mutate(seeded_am2=ifelse(am2>seeded_am2, am2, seeded_am2))%>%
+  mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 2, ifelse(comptrt=="adult perennials", 10, ifelse(comptrt=="seedlings+adults", 4/.66, starting_pm2))))
+  
 dat_p$warmtrt <- as.factor(dat_p$warmtrt)
-
+#bring in seeded_am2 and starting_pm2
 
 #dat_p tibble is the one to use for modeling
 #each row is for an adult phytometer
@@ -262,18 +261,19 @@ dat_p$warmtrt <- as.factor(dat_p$warmtrt)
 #SEEDLING SURVIVAL
 ### DATA FOR MODELS IN MODEL.FITTING.R:
 
-seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12, seeded_am2, seeded_sm2), select(seedling_sumsur, plotid, time, 6:10))
+seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12, seeded_am, seeded_sm2), select(seedling_sumsur, plotid, time, 6:10))
 seedlings<-left_join(seedlings0, plotkey)%>%
   filter(!is.na(spring))%>%
   mutate(time=as.factor(time))%>%
   mutate(seeded_a=ifelse(comptrt=="none"|comptrt=='seedling perennials', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="seedlings+adults", 0, seeded_a))))%>% # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   
   mutate(seeded_s=ifelse(comptrt=="none"|comptrt=='annuals', 4/0.06019467, ifelse(comptrt=="adult perennials", 8/0.06019467, ifelse(comptrt=="annuals+adults", 0, seeded_s)))) # germination correction factor for phytometers.  how many stems I had in spring divided by germination factor to give me how many seeds were added.   dat.sprsurv.000<-left_join(dat.sprsurv.00, select(dat_p, plotid, time, pm2))%>%
-seedlings<-left_join(seedlings, select(mutate(dat_p, time=as.factor(time)), plotid, time, pm2, starting_pm2, dpm2, nam2, lost_pm2))%>%
-  mutate(pm2=ifelse(is.na(pm2), 0, pm2))
+seedlings<-left_join(seedlings, select(mutate(dat_p, time=as.factor(time)), plotid, time, pm2))
+seedlings<-left_join(seedlings, select(mutate(annuals, time=as.factor(time)), plotid, time, dpm2, nam2, starting_pm2, seeded_am2))%>%
+  mutate(starting_pm2=ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+adults", 4/.66, starting_pm2))%>%
+  mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 66, ifelse(comptrt=="adult perennials", 132, ifelse(comptrt=="seedlings+adults"&is.na(seeded_am2), 0, seeded_am2))))%>%
+  mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 2, ifelse(comptrt=="adult perennials", 10, ifelse(comptrt=="seedlings+adults", 4/.66, starting_pm2))))%>%
+  mutate(starting_pm2=ifelse(is.na(starting_pm2), 0, starting_pm2))
+
 
 #seedlings is the one to use for modeling
 #same column names as before
-#
-
-rm(phytometers, vegplot, vegplot2020, vegplot2021, fecundity_plot_a2020, fecundity_plot_a2021, phytometers2, sprsur2020s, sumsur2020s)
-
