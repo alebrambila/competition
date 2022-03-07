@@ -83,6 +83,10 @@ annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_am2 
 
 plot(annual.simple.gaussian)
 
+stancode(annual.simple.gaussian)
+
+pairs(annual.simple.gaussian, pars = c('b_lambdaA_Intercept', 'b_lambdaA_warmtrtwarm', 'b_alphaAA_Intercept','b_alphaAA_warmtrtwarm', 'b_alphaAP_Intercept','b_alphaAP_warmtrtwarm'))
+pairs(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 #look at the plot of relationship between no competition lambda and intraspecific competition
 # pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
 # pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
@@ -92,6 +96,9 @@ saveRDS(annual.simple.gaussian, file="a030122.rds")
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
 
+plot(conditional_effects(annual.simple.gaussian), ask = FALSE)
+
+
 ## predict and plot COUNTERFACTUALS----
 
 ### predict over pm2 (hold seeded_a steady)
@@ -100,7 +107,7 @@ dat.new.annual.max <- expand.grid(
   # seeded_a = 0
   # seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
   # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
-  ,starting_pm2 = seq(0,10, length.out=20)
+  ,starting_pm2 = seq(0,10, length.out=200)
   ,warmtrt = c("amb","warm")
 )
 
@@ -109,16 +116,16 @@ dat.new.annual.mean <- expand.grid(
   # seeded_a = 0
   seeded_am2 = mean(annuals$seeded_am2, na.rm=TRUE) #0
   # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
-  ,starting_pm2 = seq(0,10, length.out=20)
+  ,starting_pm2 = seq(0,10, length.out=200)
   ,warmtrt = c("amb","warm")
 )
 
 dat.new.annual.0 <- expand.grid(
-  seeded_am2 = 0
+  seeded_am2 = 50
   # seeded_a = 0
   # seeded_a = mean(annuals$seeded_a, na.rm=TRUE) #0
   # ,seeded_s= mean(annuals$seeded_s, na.rm=TRUE) # 0
-  ,starting_pm2 = seq(0,10, length.out=20)
+  ,starting_pm2 = seq(0,10, length.out=200)
   ,warmtrt = c("amb","warm")
 )
 
