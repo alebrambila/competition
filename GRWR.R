@@ -5,19 +5,19 @@ fitsum.annuals
 fitsum.seedling
 fitsum.adult
 
-lambdaAam<-  fitsum.annual.b$value[5] #previously 1.30
-lambdaAwm<- fitsum.annual.b$value[6] #previously 1.54 
+lambdaAam<-  fitsum.annuals$value[5] #previously 1.30
+lambdaAwm<- fitsum.annuals$value[6] #previously 1.54 
 lambdaSam<- fitsum.seedling$value[7] # .019
 lambdaSwm<- fitsum.seedling$value[8] # .019
 lambdaPam<- fitsum.adult$value[5] #1.46
 lambdaPwm<- fitsum.adult$value[6] #1.73
   
-alphaAAam<- fitsum.annual.b$value[1] #.12
-alphaAAwm<- fitsum.annual.b$value[2] # 28
+alphaAAam<- fitsum.annuals$value[1] #.12
+alphaAAwm<- fitsum.annuals$value[2] # 28
 #alphaASa<- .08#annual.amb[] #not in this model anymore
 #alphaASw<- .05#annual.warm[] #not in this model anymore
-alphaAPam<- fitsum.annual.b$value[3] #.10
-alphaAPwm<- fitsum.annual.b$value[4] #.10
+alphaAPam<- fitsum.annuals$value[3] #.10
+alphaAPwm<- fitsum.annuals$value[4] #.10
   
 alphaPAam<- fitsum.adult$value[1] #.0012
 alphaPAwm<-  fitsum.adult$value[2] #.0022
@@ -31,18 +31,18 @@ alphaSSwm<- fitsum.seedling$value[6] #.0012
 alphaSPam<- fitsum.seedling$value[3] #.097
 alphaSPwm<- fitsum.seedling$value[4] # .094
 
-#all of them
-allfits.annuals1<-allfits.annual.b%>%
-  filter(.iteration>7000)%>%
+#all of them (posterior predictive plots)
+allfits.annuals1<-allfits.annuals%>%
+  filter(.iteration>1000)%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
   select(id, param, treatment, value)
 allfits.seedling1<-allfits.seedling%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
-  filter(.iteration>1000)%>%
+  filter(.iteration>625)%>%
   select(id, param, treatment, value)
 allfits.adult1<-allfits.adult%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
-  filter(.iteration>7000)%>%
+  filter(.iteration>625)%>%
   select(id, param, treatment, value)
 
 lambdaAa<- subset(allfits.annuals1, param=="lam"&treatment=="ambient")
