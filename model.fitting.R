@@ -219,7 +219,7 @@ d1<-ggplot(data=filter(pred.annual.gaussian.02, seeded_am2>50), aes(x = seeded_a
 grid.arrange(a, b, c, d, e, f, nrow=2, ncol=3)
 grid.arrange(a1, b, c, d1, e, f, nrow=2, ncol=3)# then dropping low values in zero conditionals
 
-#rest of annuals - jeff looking at fits. can skip to 279 for perennial adults ----
+# extract parameters
 allfits.annuals <- annual.simple.gaussian %>%
   spread_draws(`b_.*`, regex = TRUE) %>% 
   mutate(
@@ -477,7 +477,7 @@ d<-ggplot(data=filter(pred.adult.gaussian.02), aes(x = seeded_am2, y = Estimate*
   theme_classic()
 grid.arrange(a, b, c, d, e, f, nrow=2, ncol=3)
 
-## Get parameters: jeff's work. can skip to 610 for perennial seedlings ----
+## Get parameters 
 get_variables(adult.simple.gaussian)
 
 allfits.adult <- adult.simple.gaussian %>%
@@ -892,65 +892,25 @@ g<-ggplot(data=filter(pred.seedling.gaussian.02), aes(x = seeded_sm2, y = Estima
 
 ggarrange(a, b, c, d, e, f, g, h, i, nrow=3, ncol=3)
 
-### STOP HERE ###
-
-##alternates----
-#try splitting warmtrt and add back bounds
-seedling.simple.gaussian.amb.b<- brm(bf(fall20_s/seeded_s.g ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                                  lambdaS+alphaSA+alphaSP+alphaSS ~ 1, #1+ (1|block), 
-                                  nl=TRUE),
-                               family=gaussian,
-                               data = subset(dat.sumsurv, warmtrt=="amb"),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                               prior = c(prior(normal(.03, .03), nlpar = "lambdaS"), 
-                                         prior(normal(0, .01),    nlpar = "alphaSA"),
-                                         prior(normal(0, .01),   nlpar = "alphaSS"),
-                                         prior(normal(0, .01),     nlpar = "alphaSP")),
-                               #   inits = "0",  
-                               cores=4, 
-                               chains=4,
-                               iter=15000, 
-                               thin=5,
-                               control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-seedling.simple.gaussian.warm.b<- brm(bf(fall20_s/seeded_s.g ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                                      lambdaS+alphaSA+alphaSP+alphaSS ~ 1, #1+ (1|block), 
-                                      nl=TRUE),
-                                   family=gaussian,
-                                   data = subset(dat.sumsurv, warmtrt=="warm"),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                                   prior = c(prior(normal(.03, .03),  nlpar = "lambdaS"), 
-                                             prior(normal(0, .01),    nlpar = "alphaSA"),
-                                             prior(normal(0, .01),   nlpar = "alphaSS"),
-                                             prior(normal(0, .01),    nlpar = "alphaSP")),
-                                   #   inits = "0",  
-                                   cores=4, 
-                                   chains=4,
-                                   iter=15000, 
-                                   thin=5,
-                                   control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-
 ## Get parameters ----
 get_variables(seedling.simple.gaussian.amb)
 get_variables(seedling.simple.gaussian.amb)
 
 
-allfits.seedling.amb <- seedling.simple %>%
-  spread_draws(`b_.*`, regex = TRUE) 
-allfits.seedling.warm <- seedling.simple %>%
-  spread_draws(`b_.*`, regex = TRUE) 
-allfits.seedling<-allfits.seedling.amb%>% 
+allfits.seedling <- seedling.simple.gaussian %>%
+  spread_draws(`b_.*`, regex = TRUE) %>% 
   mutate(
     lam_amb=b_lambdaS_Intercept,
-    lam_warm=b_lambdaS_Intercept + allfits.seedling.warm$b_lambdaS_Intercept,
-    
-    alphaSA_amb=b_alphaSA_Intercept,
-    alphaSA_warm=b_alphaSA_Intercept + allfits.seedling.warm$b_alphaSA_Intercept,
+    lam_warm=b_lambdaS_Intercept + b_lambdaS_warmtrtwarm,  #lam_warm=b_lambdaS_Intercept + allfits.seedling.gaussian$b_lambdaS_Intercept,
+
+    alphaSA_amb=b_alphaSA_Intercept,   
+    alphaSA_warm=b_alphaSA_Intercept + b_alphaSA_warmtrtwarm, #alphaSA_warm=b_alphaSA_Intercept + allfits.seedling.gaussiana$b_alphaSA_Intercept,
     
     alphaSP_amb=b_alphaSP_Intercept,
-    alphaSP_warm=b_alphaSP_Intercept + allfits.seedling.warm$b_alphaSP_Intercept,
+    alphaSP_warm=b_alphaSP_Intercept + b_alphaSP_warmtrtwarm, #alphaSP_warm=b_alphaSP_Intercept + allfits.seedling.warm$b_alphaSP_Intercept,
     
      alphaSS_amb=b_alphaSS_Intercept,
-     alphaSS_warm=b_alphaSS_Intercept + allfits.seedling.warm$b_alphaSS_Intercept
+     alphaSS_warm=b_alphaSS_Intercept + b_alphaSS_warmtrtwarm #alphaSS_warm=b_alphaSS_Intercept + allfits.seedling.warm$b_alphaSS_Intercept
   ) %>%
   dplyr::select(-contains("b_")) %>% 
   pivot_longer(-c(.chain, .iteration, .draw), 
@@ -962,6 +922,7 @@ fitsum.seedling<-allfits.seedling%>%
   group_by(param, treatment) %>% 
   # median_qi(.width = c(.95)) 
   mean_qi(.width = c(.66)) 
+
 
 #look at parameter posterior distributions
 ggplot(fitsum.seedling, aes(x=value, y=interaction(treatment, param)))+geom_point(aes(color=treatment))+geom_errorbar(aes(xmin=`.lower`, xmax=`.upper`, color=treatment), width=.2)
