@@ -100,7 +100,7 @@ seedling_sumsur2021<-select(vegplot2021, plotid, time, count_s, count_s_fall, fa
   mutate(gopher_fall=ifelse(is.na(gopher_fall), 0, gopher_fall))%>%
   filter(!is.na(count_s), count_s!=0)%>% #get rid of plots w/o seedlings, 100% gopher damage
   mutate(fall.g=fall/(1-gopher_fall))%>% # adjust summer survival for the proportion of the plot that was damaged by gophers
-select(-count_s, -`count_s_fall`)%>%
+  select(-count_s, -`count_s_fall`)%>%
   mutate(fall.g=ifelse(fall.g>spring, spring, fall.g))%>% #in some cases my adjustment above put fall>spring, this is to max out at 100% survival
   mutate(sumsur=fall.g/spring)%>%
   mutate(gopher=gopher_fall, time=2021)%>%
@@ -113,7 +113,6 @@ seedling_sumsur<-rbind(seedling_sumsur2020, seedling_sumsur2021)
 #spring20_s and fall20_s.g are the relevant data here
 seedling_sumsur<-right_join(plotkey, seedling_sumsur)
 
-rm(seedling_sumsur2020, seedling_sumsur2021)
 
 
 #### SPRING SURVIVAL #### 
@@ -124,7 +123,7 @@ spr_sur2020<-select(vegplot2020, 1:8, 12, 14)%>%
                          ifelse(comptrt=="annuals+adults"|comptrt=="annuals+seedlings", 310*2, 0)))%>%
   mutate(time=2020)%>%
   mutate(gopher_spring=0)
- 
+
 spr_sur2021<-select(vegplot2021, plotid, time, 1:6, count_s, count_a, gopher_spring)%>%
   mutate(seeded_s=ifelse(comptrt=="seedling perennials", 750*6, #weighed 1g of seed and counted
                          ifelse(comptrt=="seedlings+adults"|comptrt=="annuals+seedlings", 750*2, 0)))%>%
@@ -137,13 +136,12 @@ spr_sur2021<-select(vegplot2021, plotid, time, 1:6, count_s, count_a, gopher_spr
 
 # mutate(seeded_s=seeded_s*gopher_spring, seeded_a=seeded_a*gopher_spring)%>%  
 #  select(-gopher_spring)
-  
+
 sprsur<-rbind(spr_sur2020, spr_sur2021)%>%
   mutate(seeded_am2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), seeded_a, seeded_a/.66))%>%
   mutate(seeded_sm2=ifelse(comptrt%in%c("none", "annuals", "adult perennials", "seedling perennials"), seeded_s, seeded_s/.66))
-  
 
-rm(spr_sur2020, spr_sur2021)
+
 
 
 #Annual spring survival
@@ -180,7 +178,7 @@ phytometers1$type2 <- factor(phytometers1$type2, levels = c("plug_2019", "plug_2
 
 #phytometers2, to compare differences between different types of adults (over time, damaged, new)
 phytometers2<-left_join(phytometers1, plotkey)
-  
+
 
 
 fecundity<-select(phytometers1, plotid, type, id, tillers, type2)%>% 
@@ -215,7 +213,8 @@ annuals<-left_join(annuals, density_spring)%>%
   mutate(plotseeds=seeds*count_a)%>%
   mutate(time=as.factor(time))%>%
   mutate(seeded_am2=ifelse(seeded_am2<am2, am2, seeded_am2))%>%
-  mutate(seeded_am2=as.integer(ifelse(seeded_am2<seeded_a, seeded_a, seeded_am2)))
+  mutate(seeded_am2=as.integer(ifelse(seeded_am2<seeded_a, seeded_a, seeded_am2)))%>%
+  filter(seeded_am2>=66) #remove false low values
 
 
 annuals$block <- as.factor(annuals$block)
@@ -243,12 +242,13 @@ dat_p<-left_join(subset(mutate(fecundity_phyt_p, time=year_data), type!="plug"),
   mutate(fecundity=seeds)%>%
   ungroup()%>%
   mutate(time=as.factor(time))%>%
+  filter(type=="adult")%>%
   select(plotid, time,  warmtrt, comptrt, id, fecundity,25:29)
 dat_p<-left_join(dat_p, dplyr::select(annuals, plotid, time, seeded_a, seeded_am2, starting_pm2))%>%
   mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 66, ifelse(comptrt=="adult perennials", 132, ifelse(comptrt=="seedlings+adults"&is.na(seeded_am2), 0, seeded_am2))))%>%
   mutate(seeded_am2=ifelse(am2>seeded_am2, am2, seeded_am2))%>%
   mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 2, ifelse(comptrt=="adult perennials", 10, ifelse(comptrt=="seedlings+adults", 4/.66, starting_pm2))))
-  
+
 dat_p$warmtrt <- as.factor(dat_p$warmtrt)
 #bring in seeded_am2 and starting_pm2
 
@@ -256,12 +256,12 @@ dat_p$warmtrt <- as.factor(dat_p$warmtrt)
 #each row is for an adult phytometer
 #uses mostly the same column names as above
 #type is an important column - previously we have only run this with type="adult".  
-  # the other types present are adult_g (obviously damaged by gophers) and newadult (a seedling that has become an adult)
+# the other types present are adult_g (obviously damaged by gophers) and newadult (a seedling that has become an adult)
 
 #SEEDLING SURVIVAL
 ### DATA FOR MODELS IN MODEL.FITTING.R:
 
-seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12, seeded_am, seeded_sm2), select(seedling_sumsur, plotid, time, 6:10))
+seedlings0<-left_join(select(seedling_sprsur, plotid, time, 9:12, seeded_am2, seeded_sm2), select(seedling_sumsur, plotid, time, 6:10))
 seedlings<-left_join(seedlings0, plotkey)%>%
   filter(!is.na(spring))%>%
   mutate(time=as.factor(time))%>%
