@@ -37,9 +37,9 @@ source('data.cleaning.R')
 ### visualize ----
 ggplot(annuals, aes(x=seeded_am2, y=starting_pm2, color=warmtrt)) +
   geom_jitter(width=.1)+facet_wrap(~time)#+
- # geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
- # scale_colour_manual(values = c("dodgerblue", "darkred"))
- 
+# geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
+# scale_colour_manual(values = c("dodgerblue", "darkred"))
+
 # JD: look at data
 head(annuals); dim(annuals)
 # how many plots / block?  answer: 12
@@ -62,16 +62,22 @@ ggplot(subset(annuals), aes(x=seeded_am2, y=percap, color=warmtrt)) +
 #  geom_smooth(method = 'lm',formula = y ~ x , se=F)+xlab("perennial seeds in")#+ylab("annual percapita seeds out")
 
 ### BRM fits ----
-#Simple annual gaussian model (no block/alphaAS)
 #annuals.sc <- mutate(annuals, seeded_a=seeded_a/1000)
-annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2), # + alphaAS*seeded_s #switched seeded_a to seeded_am2 to get density, not sure if to switch pm2 to starting_pm2
+annual.simple.gaussian <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2), # + alphaAS*seeded_s #switched seeded_a to seeded_am2 to get density, not sure if to switch pm2 to starting_pm2
                                  lambdaA + alphaAA + alphaAP ~ warmtrt + (1|time),
                                  nl=TRUE), 
                               data = annuals,
                               family = gaussian, 
-                              prior = c(prior(normal(0, 1), nlpar = "lambdaA"), 
+                              # This next line is the issue. The output for parameters I get for this is
+                              # lambdaA_Intercept and lambdaA_warmtrtwarm.  I interpret these as lambdaA_Intercept is the ambient lambda
+                              # and lambdaA_Intercept + lambdaA_warmtrtwarm is the warmed lambda. But lambda_Intercept and lambda_warmtrtwarm
+                              # have the same prior, so if it's as is it means the lambdaA_Intercept (ambient paramter) can go below zero (nonsensical)
+                              # and if it's forced to be positive lambdaA_warmtrtwarm can only be positive, meaning the effect of warming can 
+                              # only be positive. Maybe I'm misunderstanding something but it would be good to force actual lambdas positive
+                              # but not the effect of warming. 
+                              prior = c(prior(normal(0, 1), nlpar = "lambdaA"),
+                                        #  set_prior("uniform(0, 2)", class="Intercept",  nlpar = "lambdaA"), #an attempt to just set a lower bound for intercept to be positive
                                         prior(normal(0, .1), nlpar = "alphaAA"),
-                                        # prior(normal(0, .1), nlpar = "alphaAS"),  #added term for seedling competitive effect
                                         prior(normal(0, .1), nlpar = "alphaAP")),
                               inits="0",
                               cores=4, 
@@ -82,21 +88,53 @@ annual.simple.gaussian <- brm(bf(percap ~ lambdaA*100 / (1 + alphaAA*seeded_am2 
                               control = list(adapt_delta = 0.9, max_treedepth = 16))
 
 plot(annual.simple.gaussian)
-
-stancode(annual.simple.gaussian)
-
 pairs(annual.simple.gaussian, pars = c('b_lambdaA_Intercept', 'b_lambdaA_warmtrtwarm', 'b_alphaAA_Intercept','b_alphaAA_warmtrtwarm', 'b_alphaAP_Intercept','b_alphaAP_warmtrtwarm'))
 pairs(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 #look at the plot of relationship between no competition lambda and intraspecific competition
 # pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
 # pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
+#saveRDS(annual.simple.gaussian, file="aintercept.rds")
 
-saveRDS(annual.simple.gaussian, file="a030122.rds")
-#annual.simple.gaussian<-readRDS(file="a020122.rds")
+annual.simple.gaussian<-readRDS(file="a030122.rds")
+
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
 
 plot(conditional_effects(annual.simple.gaussian), ask = FALSE)
+
+
+#just ambient
+#annual.simple.amb <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2),
+#                            lambdaA + alphaAA + alphaAP ~ (1|time),
+#                            nl=TRUE), 
+#                         data = subset(annuals, warmtrt="amb"),
+#                         prior = c(prior(normal(.5, .5), lb=0, nlpar = "lambdaA"), 
+#                                   prior(normal(.1, .1), nlpar = "alphaAA", lb=0),
+#                                   prior(normal(.1, .1), nlpar = "alphaAP", lb=0)),
+#                         inits = "0",  
+#                         cores=4, 
+#                         chains=4,
+#                         iter=10000, 
+#                         thin=1,
+#                         refresh=100,
+#                         control = list(adapt_delta = 0.98, max_treedepth = 18))
+#
+#annual.simple.warm <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2),
+#                            lambdaA + alphaAA + alphaAP ~ (1|time),
+#                            nl=TRUE), 
+#                         data = subset(annuals, warmtrt="warm"),
+#                         prior = c(prior(normal(.5, .5), lb=0, nlpar = "lambdaA"), 
+#                                   prior(normal(.1, .1), nlpar = "alphaAA", lb=0),
+#                                   prior(normal(.1, .1), nlpar = "alphaAP", lb=0)),
+#                         inits = "0",  
+#                         cores=4, 
+#                         chains=4,
+#                         iter=10000, 
+#                         thin=1,
+#                         refresh=100,
+#                         control = list(adapt_delta = 0.98, max_treedepth = 18))
+
+
 
 
 ## predict and plot COUNTERFACTUALS----
@@ -276,6 +314,7 @@ bev.annuals2 <- function(x, lam, AA,AP,N_A) {lam  / (1+AA*N_A + AP*x)} # Beverto
 #dat_p is the tibble from data.cleaning here
 
 #visualizations----
+dat_p<-filter(dat_p, !id%in% c("s1", "s2", "s3", "s4"))
 p1<-ggplot(dat_p, aes(x=starting_pm2, y=fecundity, color=time)) +
   geom_jitter(aes(shape=time))+
   geom_smooth(aes(linetype=time), method = 'lm',formula = y ~ x , se=F)+
@@ -296,8 +335,8 @@ ggarrange(p1, p2, common.legend = T)
 
 head(dat_p)
 hist(dat_p$fecundity)
-hist(dat_p$pm2)
-hist(dat_p$seeded_a)
+hist(dat_p$starting_pm2)
+hist(dat_p$seeded_am2)
 
 # make scaled version - model runs great if you use these; just complicates interpretation
 dat_p$fecundity_scaled <- as.vector(scale(dat_p$fecundity))
@@ -338,7 +377,7 @@ ggplot(dat_p, aes(x= seeded_am2, y=fecundity)) +
               color='orange')
 
 # check out reasonable possible param values
-ggplot(dat_p, aes(x= pm2, y=fecundity)) +
+ggplot(dat_p, aes(x= starting_pm2, y=fecundity)) +
   geom_point() +
   stat_smooth(method = "nls",
               formula = y ~ a/(1+b*x), # BH
@@ -357,20 +396,20 @@ ggplot(dat_p, aes(x= pm2, y=fecundity)) +
 
 
 adult.simple.gaussian <- brm(bf(fecundity/20000 ~ lambdaP / (1+alphaPA*seeded_am2 + alphaPP*starting_pm2), # lambdaP*20000
-  lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
-    nl=TRUE), 
-    data = dat_p,
-    family = gaussian, 
-    prior = c(prior(normal(0, 1),nlpar = "lambdaP"), 
-    prior(normal(.001, .01), nlpar = "alphaPA"),
-    prior(normal(.1, .1), nlpar = "alphaPP")),
-    inits = "0",  
-    cores=3, 
-    chains=3,
-    iter=5000, 
-    thin=2,
-     control = list(adapt_delta = 0.9, max_treedepth = 16),
-    refresh=100,
+                                lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
+                                nl=TRUE), 
+                             data = dat_p,
+                             family = gaussian, 
+                             prior = c(prior(normal(0, 1),nlpar = "lambdaP"), 
+                                       prior(normal(.001, .01), nlpar = "alphaPA"),
+                                       prior(normal(.1, .1), nlpar = "alphaPP")),
+                             inits = "0",  
+                             cores=3, 
+                             chains=3,
+                             iter=5000, 
+                             thin=2,
+                             control = list(adapt_delta = 0.9, max_treedepth = 16),
+                             refresh=100,
 )
 
 conditional_effects(adult.simple.gaussian)
@@ -380,13 +419,7 @@ plot(adult.simple.gaussian)
 saveRDS(adult.simple.gaussian, file="p030122.rds")
 #readRDS(adult.simple.gaussian, file="p020122.rds")
 
-
-
 # Plot model results - JD - need to remember how to do this, and how to back-convert the parameters and predictions given the transformations in the model
-
-
-
-
 
 ## predict and plot COUNTERFACTUALS----
 
@@ -532,16 +565,16 @@ bev.adult.inter <- function(x, lam, PA,PP,N_P) {lam  / (1+PP*N_P + PA*x)} # Beve
 #plot annual fecundity when other competitor is at mean value
 ggplot(subset(datp, seeded_a<500), aes(x = density_p, y = out_p, color=warmtrt)) + 
   geom_jitter()+
-#  geom_function(fun=bev.adult.self, color='dodgerblue', size=1.5,
-#                args=c("lam"=5000*fitsum.adult$value[5], "PP"=fitsum.adult$value[3], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "PA"=fitsum.annuals$value[1], "N_A"=mean(datp$seeded_a)
-#                ))+
-#  geom_function(fun=bev.adult.self, color='darkred', size=1.5,
-#                args=c("lam"=5000*fitsum.adult$value[6], "PP"=fitsum.adult$value[4], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "PA"=fitsum.adult$value[2], "N_A"=mean(datp$seeded_a)
-#                ))+
+  #  geom_function(fun=bev.adult.self, color='dodgerblue', size=1.5,
+  #                args=c("lam"=5000*fitsum.adult$value[5], "PP"=fitsum.adult$value[3], 
+  #                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                       "PA"=fitsum.annuals$value[1], "N_A"=mean(datp$seeded_a)
+  #                ))+
+  #  geom_function(fun=bev.adult.self, color='darkred', size=1.5,
+  #                args=c("lam"=5000*fitsum.adult$value[6], "PP"=fitsum.adult$value[4], 
+  #                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                       "PA"=fitsum.adult$value[2], "N_A"=mean(datp$seeded_a)
+  #                ))+
   geom_smooth(method=lm, se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+
   ylab("Per capita adult perennial fecundity")+
@@ -550,16 +583,16 @@ ggplot(subset(datp, seeded_a<500), aes(x = density_p, y = out_p, color=warmtrt))
 
 ggplot(subset(datp, density_p<3), aes(x = seeded_a, y = out_p, color=warmtrt)) + 
   geom_jitter()+
-#  geom_function(fun=bev.adult.inter, color='dodgerblue', size=1.5,
-##                args=c("lam"=5000*fitsum.adult$value[5], "PP"=fitsum.adult$value[3], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "PA"=fitsum.annuals$value[1], "N_P"=mean(datp$density_p)
-#                ))+
-#  geom_function(fun=bev.adult.inter, color='darkred', size=1.5,
-#                args=c("lam"=5000*fitsum.adult$value[6], "PP"=fitsum.adult$value[4], 
-#                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
-#                       "PA"=fitsum.adult$value[2], "N_P"=mean(datp$density_p)
-#                ))+
+  #  geom_function(fun=bev.adult.inter, color='dodgerblue', size=1.5,
+  ##                args=c("lam"=5000*fitsum.adult$value[5], "PP"=fitsum.adult$value[3], 
+  #                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                       "PA"=fitsum.annuals$value[1], "N_P"=mean(datp$density_p)
+  #                ))+
+  #  geom_function(fun=bev.adult.inter, color='darkred', size=1.5,
+  #                args=c("lam"=5000*fitsum.adult$value[6], "PP"=fitsum.adult$value[4], 
+  #                       # "AS"=param.amb$value[3], "N_S"=mean(annuals$seeded_s),
+  #                       "PA"=fitsum.adult$value[2], "N_P"=mean(datp$density_p)
+  #                ))+
   geom_smooth(se=F, method=lm)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+
   ylab("Per capita adult perennial fecundity")+
@@ -636,21 +669,21 @@ adult.amb.model<-readRDS("PL070121a.rds") #this is ambient fitted alone, way low
 
 ### 2.2 Perennial fecundity logscaled ----
 perennial.lambda.logscale <- brm(bf(log(1+out_p) ~ log(exp(log(lambdaP) - log((1+alphaPA*(seeded_a+1) + alphaPP*(density_p+1))))),
-                           lambdaP ~ warmtrt + (1|block),
-                           alphaPA ~  warmtrt + (1|block),# didnt add seedling competition on adults, dont think it would help
-                           alphaPP ~  warmtrt + (1|block),
-                           nl=TRUE),
-                        data = subset(datp),
-                        prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
-                                  prior(normal(0, .2), nlpar = "alphaPA"),
-                                  prior(normal(0, .2), nlpar = "alphaPP")),
-                        inits = "0",  
-                        cores=4, 
-                        chains=4,
-                        refresh=100,
-                        iter=20000, 
-                        # thin=2
-                        #  ,control = list(adapt_delta = 0.99, max_treedepth = 17)
+                                    lambdaP ~ warmtrt + (1|block),
+                                    alphaPA ~  warmtrt + (1|block),# didnt add seedling competition on adults, dont think it would help
+                                    alphaPP ~  warmtrt + (1|block),
+                                    nl=TRUE),
+                                 data = subset(datp),
+                                 prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
+                                           prior(normal(0, .2), nlpar = "alphaPA"),
+                                           prior(normal(0, .2), nlpar = "alphaPP")),
+                                 inits = "0",  
+                                 cores=4, 
+                                 chains=4,
+                                 refresh=100,
+                                 iter=20000, 
+                                 # thin=2
+                                 #  ,control = list(adapt_delta = 0.99, max_treedepth = 17)
 )
 
 perennial.lambda.logscale
@@ -710,7 +743,7 @@ ggarrange(s1, s2, s3, common.legend = T, nrow=1, ncol=3)
 fall.g/seeded_s
 
 # seedling.simple.gaussian<- brm(bf(fall.g/seeded_s ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*pm2), 
-                                  
+
 # eq2 <- function(x1,x2,x3, lam, sa, ss, sp) {
 #   lam/(1+ sa*x1 + ss*x2 + sp*x3)
 # }
@@ -730,18 +763,18 @@ fall.g/seeded_s
 seedling.simple.gaussian<- brm(bf(fall.g/seeded_sm2 ~ lambdaS / (1+alphaSA*seeded_am2 + alphaSS*seeded_sm2 + alphaSP*starting_pm2), #update data terms with new from above
                                   lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
                                   nl=TRUE),
-                      family=gaussian,
-                      data = seedlings,   #running this with limited dataset as in the figures above (only in seedling comptrts)
-                      prior = c(prior(normal(.05, .1), nlpar = "lambdaS"), 
-                                prior(normal(0.1, .1),    nlpar = "alphaSA"),
-                                prior(normal(0.1, .1),    nlpar = "alphaSS"),
-                                prior(normal(0.1, .1),    nlpar = "alphaSP")),
-                         inits = "0",  
-                      cores=3, 
-                      chains=3,
-                      iter=5000, 
-                      thin=2,
-                      control = list(adapt_delta = 0.9, max_treedepth = 16))
+                               family=gaussian,
+                               data = seedlings,   #running this with limited dataset as in the figures above (only in seedling comptrts)
+                               prior = c(prior(normal(.05, .1), nlpar = "lambdaS"), 
+                                         prior(normal(0.1, .1),    nlpar = "alphaSA"),
+                                         prior(normal(0.1, .1),    nlpar = "alphaSS"),
+                                         prior(normal(0.1, .1),    nlpar = "alphaSP")),
+                               inits = "0",  
+                               cores=3, 
+                               chains=3,
+                               iter=5000, 
+                               thin=2,
+                               control = list(adapt_delta = 0.9, max_treedepth = 16))
 
 plot(seedling.simple.gaussian)
 seedling.simple.gaussian
@@ -909,15 +942,15 @@ allfits.seedling <- seedling.simple.gaussian %>%
   mutate(
     lam_amb=b_lambdaS_Intercept,
     lam_warm=b_lambdaS_Intercept + b_lambdaS_warmtrtwarm,  #lam_warm=b_lambdaS_Intercept + allfits.seedling.gaussian$b_lambdaS_Intercept,
-
+    
     alphaSA_amb=b_alphaSA_Intercept,   
     alphaSA_warm=b_alphaSA_Intercept + b_alphaSA_warmtrtwarm, #alphaSA_warm=b_alphaSA_Intercept + allfits.seedling.gaussiana$b_alphaSA_Intercept,
     
     alphaSP_amb=b_alphaSP_Intercept,
     alphaSP_warm=b_alphaSP_Intercept + b_alphaSP_warmtrtwarm, #alphaSP_warm=b_alphaSP_Intercept + allfits.seedling.warm$b_alphaSP_Intercept,
     
-     alphaSS_amb=b_alphaSS_Intercept,
-     alphaSS_warm=b_alphaSS_Intercept + b_alphaSS_warmtrtwarm #alphaSS_warm=b_alphaSS_Intercept + allfits.seedling.warm$b_alphaSS_Intercept
+    alphaSS_amb=b_alphaSS_Intercept,
+    alphaSS_warm=b_alphaSS_Intercept + b_alphaSS_warmtrtwarm #alphaSS_warm=b_alphaSS_Intercept + allfits.seedling.warm$b_alphaSS_Intercept
   ) %>%
   dplyr::select(-contains("b_")) %>% 
   pivot_longer(-c(.chain, .iteration, .draw), 
@@ -952,16 +985,16 @@ bev.seedling.intera <- function(x, lam, SA,SP,SS, N_S, N_P) {lam  / (1+SP*N_S + 
 #plot seedling survival vary (why is the prediction so small??)
 ggplot(subset(dat.sumsurv, seeded_s>100&seeded_a<5000&density_p<3), aes(x=seeded_s.g, y=fall20_s/seeded_s.g, color=warmtrt))+
   geom_jitter()+
-#  geom_function(fun=bev.seedling.self, color='dodgerblue', size=1.5,
-#                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
-#                        "SA"=fitsum.seedling$value[1], "N_A"=mean(dat.sumsurv$seeded_a),
-#                       "SP"=fitsum.seedling$value[3], "N_P"=mean(dat.sumsurv$density_p)
-#                ))+
-#  geom_function(fun=bev.seedling.self, color='darkred', size=1.5,
-##                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
-#                       "SA"=fitsum.seedling$value[2], "N_A"=mean(dat.sumsurv$seeded_a),
-#                       "SP"=fitsum.seedling$value[4], "N_P"=mean(dat.sumsurv$density_p)
-#                ))+
+  #  geom_function(fun=bev.seedling.self, color='dodgerblue', size=1.5,
+  #                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
+  #                        "SA"=fitsum.seedling$value[1], "N_A"=mean(dat.sumsurv$seeded_a),
+  #                       "SP"=fitsum.seedling$value[3], "N_P"=mean(dat.sumsurv$density_p)
+  #                ))+
+  #  geom_function(fun=bev.seedling.self, color='darkred', size=1.5,
+  ##                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
+  #                       "SA"=fitsum.seedling$value[2], "N_A"=mean(dat.sumsurv$seeded_a),
+  #                       "SP"=fitsum.seedling$value[4], "N_P"=mean(dat.sumsurv$density_p)
+  #                ))+
   geom_smooth(method=lm, se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+
   ylab("Proportion of seeds surviving to adulthood")+
@@ -971,16 +1004,16 @@ ggplot(subset(dat.sumsurv, seeded_s>100&seeded_a<5000&density_p<3), aes(x=seeded
 #vary adults
 ggplot(subset(dat.sumsurv, seeded_s>100&seeded_a<5000), aes(x=density_p, y=fall20_s/seeded_s.g, color=warmtrt))+
   geom_jitter()+
-#  geom_function(fun=bev.seedling.interp, color='dodgerblue', size=1.5,
-#                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
-#                       "SA"=fitsum.seedling$value[1], "N_A"=mean(dat.sumsurv$seeded_a),
-#                       "SP"=fitsum.seedling$value[3], "N_S"=mean(dat.sumsurv$seeded_s)
-#                ))+
-#  geom_function(fun=bev.seedling.interp, color='darkred', size=1.5,
-#                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
-#                       "SA"=fitsum.seedling$value[2], "N_A"=mean(dat.sumsurv$seeded_a),
-#                       "SP"=fitsum.seedling$value[4], "N_S"=mean(dat.sumsurv$seeded_s)
-#                ))+
+  #  geom_function(fun=bev.seedling.interp, color='dodgerblue', size=1.5,
+  #                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
+  #                       "SA"=fitsum.seedling$value[1], "N_A"=mean(dat.sumsurv$seeded_a),
+  #                       "SP"=fitsum.seedling$value[3], "N_S"=mean(dat.sumsurv$seeded_s)
+  #                ))+
+  #  geom_function(fun=bev.seedling.interp, color='darkred', size=1.5,
+  #                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
+  #                       "SA"=fitsum.seedling$value[2], "N_A"=mean(dat.sumsurv$seeded_a),
+  #                       "SP"=fitsum.seedling$value[4], "N_S"=mean(dat.sumsurv$seeded_s)
+  #                ))+
   geom_smooth(method=lm, se=F)+
   scale_colour_manual(values = c("dodgerblue", "darkred"))+
   ylab("")+
@@ -996,32 +1029,32 @@ ggplot(subset(dat.sumsurv, comptrt=="none"), aes(x=warmtrt, y=fall20_s/seeded_s.
 #vary annuals
 ggplot(subset(dat.sumsurv, seeded_s>100&density_p<3), aes(x=seeded_a, y=fall20_s/seeded_s.g, color=warmtrt))+
   geom_jitter()+
-#  geom_function(fun=bev.seedling.intera, color='dodgerblue', size=1.5,
-#                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
-#                       "SA"=fitsum.seedling$value[1], "N_S"=mean(dat.sumsurv$seeded_s),
-#                       "SP"=fitsum.seedling$value[3], "N_P"=mean(dat.sumsurv$density_p)
-#                ))+
-#  geom_function(fun=bev.seedling.intera, color='darkred', size=1.5,
-#                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
-#                       "SA"=fitsum.seedling$value[2], "N_S"=mean(dat.sumsurv$seeded_s),
-#                       "SP"=fitsum.seedling$value[4], "N_P"=mean(dat.sumsurv$density_p)
-#                ))+
-geom_smooth(method=lm, se=F)+ 
- scale_colour_manual(values = c("dodgerblue", "darkred"))+
+  #  geom_function(fun=bev.seedling.intera, color='dodgerblue', size=1.5,
+  #                args=c("lam"=fitsum.seedling$value[7], "SS"=fitsum.seedling$value[5], 
+  #                       "SA"=fitsum.seedling$value[1], "N_S"=mean(dat.sumsurv$seeded_s),
+  #                       "SP"=fitsum.seedling$value[3], "N_P"=mean(dat.sumsurv$density_p)
+  #                ))+
+  #  geom_function(fun=bev.seedling.intera, color='darkred', size=1.5,
+  #                args=c("lam"=fitsum.seedling$value[8], "SS"=fitsum.seedling$value[6], 
+  #                       "SA"=fitsum.seedling$value[2], "N_S"=mean(dat.sumsurv$seeded_s),
+  #                       "SP"=fitsum.seedling$value[4], "N_P"=mean(dat.sumsurv$density_p)
+  #                ))+
+  geom_smooth(method=lm, se=F)+ 
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+
   ylab("")+
   xlab("Seeded annuals/m2")+ 
   theme(text=element_text(size=16))
 
 
 # try to predict seedling as a factor of perennial density using predict() rather than bev holt in case of transformation issues
-  dat.new.seedling <- expand.grid(
-    #seeded_a = max(annuals$seeded_a, na.rm=TRUE)
-    # seeded_a = 0
-    seeded_a = mean(dat.sumsurv$seeded_a, na.rm=TRUE) #0
-    ,seeded_s.g= as.integer(mean(dat.sumsurv$seeded_s.g, na.rm=TRUE)) # 0
-    ,density_p = seq(0,10, length.out=20)
-    ,warmtrt = c("amb","warm")
-  )
+dat.new.seedling <- expand.grid(
+  #seeded_a = max(annuals$seeded_a, na.rm=TRUE)
+  # seeded_a = 0
+  seeded_a = mean(dat.sumsurv$seeded_a, na.rm=TRUE) #0
+  ,seeded_s.g= as.integer(mean(dat.sumsurv$seeded_s.g, na.rm=TRUE)) # 0
+  ,density_p = seq(0,10, length.out=20)
+  ,warmtrt = c("amb","warm")
+)
 
 # try predicting seedling lines
 pred.seedling <- 
@@ -1062,69 +1095,69 @@ seedling.w<-readRDS("PS070321w")
 
 
 
- # conditional_effects(savedps2)%>% plot(points=T) # I am getting errors when I try to see conditional effects of the binomial model.  It says that it is exporting 
+# conditional_effects(savedps2)%>% plot(points=T) # I am getting errors when I try to see conditional effects of the binomial model.  It says that it is exporting 
 #  conditional_effects(savedPS, conditions = data.frame(trials = 100), effects = "seeded_a:warmtrt")%>% plot(points=T)
 #  conditional_effects(savedPS, effects = "density_p:warmtrt")%>% plot(points=T)
 #  plot(conditional_effects(savedPS, conditions = data.frame(trials = 10)), points = T)
-  #saveRDS(savedPS, file="PS.rds")
- # savedps2<-readRDS("PS.rds")
-  
+#saveRDS(savedPS, file="PS.rds")
+# savedps2<-readRDS("PS.rds")
+
 ### 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1) (SKIP - DIDNT SEEM LIKE 3.2 or 3.3 added much)----
-  sprsur.binomial<- brm(bf(spring_20s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                             sprsurS ~ warmtrt+ (1|block), 
-                             alphaSA ~  warmtrt+ (1|block), 
-                             alphaSP ~  warmtrt+ (1|block), 
-                             alphaSS ~  warmtrt+ (1|block), nl=TRUE),
-                          family=binomial,
-                          data = subset(dat.sprsurv, seeded_s>150),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                          prior = c(prior(normal(0, .5), lb=0, nlpar = "sprsurS"), 
-                                    prior(normal(0, .1), nlpar = "alphaSA"),
-                                    prior(normal(0, .1), nlpar = "alphaSS"),
-                                    prior(normal(0, .1), nlpar = "alphaSP")),
-                          inits = "0",  
-                          cores=4, 
-                          chains=4,
-                          iter=10000, 
-                          thin=5,
-                          control = list(adapt_delta = 0.9, max_treedepth = 15))
-  )
-  
-  sprsur
-  summary(sprsur)
-  plot(sprsur)
-  fixef(sprsur)
-  conditional_effects(sprsur)
-  
- # saveRDS(sprsur.binomial, file="SPR.rds")
-  #savedspr<-readRDS("SPR.rds")
+sprsur.binomial<- brm(bf(spring_20s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
+                         sprsurS ~ warmtrt+ (1|block), 
+                         alphaSA ~  warmtrt+ (1|block), 
+                         alphaSP ~  warmtrt+ (1|block), 
+                         alphaSS ~  warmtrt+ (1|block), nl=TRUE),
+                      family=binomial,
+                      data = subset(dat.sprsurv, seeded_s>150),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
+                      prior = c(prior(normal(0, .5), lb=0, nlpar = "sprsurS"), 
+                                prior(normal(0, .1), nlpar = "alphaSA"),
+                                prior(normal(0, .1), nlpar = "alphaSS"),
+                                prior(normal(0, .1), nlpar = "alphaSP")),
+                      inits = "0",  
+                      cores=4, 
+                      chains=4,
+                      iter=10000, 
+                      thin=5,
+                      control = list(adapt_delta = 0.9, max_treedepth = 15))
+)
+
+sprsur
+summary(sprsur)
+plot(sprsur)
+fixef(sprsur)
+conditional_effects(sprsur)
+
+# saveRDS(sprsur.binomial, file="SPR.rds")
+#savedspr<-readRDS("SPR.rds")
 
 ### 3.3 Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1) ----
 sumsur <- brm(bf(fall20_s|trials(spring20_s.g) ~ sumsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                            sumsurS ~ warmtrt + (1|block), 
-                            alphaSA ~  warmtrt + (1|block), 
-                            alphaSP ~  warmtrt + (1|block), 
-                            alphaSS ~  warmtrt + (1|block), nl=TRUE),
-                         family=binomial,
-                         data = subset(dat.sumsurv, seeded_s>150),
-                         prior = c(prior(normal(1, 1), lb=0, nlpar = "sumsurS"), 
-                                   prior(normal(0, .1), nlpar = "alphaSA"),
-                                   prior(normal(0, .1), nlpar = "alphaSS"),
-                                   prior(normal(0, .1), nlpar = "alphaSP")),
-                         inits = "0",  
-                         cores=4, 
-                         chains=4,
-                         iter=5000, 
-                         thin=5,
-                         control = list(adapt_delta = 0.99, max_treedepth = 18))
-  
-  plot(seedling_sumsur)
-  summary(seedling_sumsur)
-  
-  saveRDS(sumsur, file="SUM.rds")
-  savedsum<-readRDS("SUM.rds")
+                 sumsurS ~ warmtrt + (1|block), 
+                 alphaSA ~  warmtrt + (1|block), 
+                 alphaSP ~  warmtrt + (1|block), 
+                 alphaSS ~  warmtrt + (1|block), nl=TRUE),
+              family=binomial,
+              data = subset(dat.sumsurv, seeded_s>150),
+              prior = c(prior(normal(1, 1), lb=0, nlpar = "sumsurS"), 
+                        prior(normal(0, .1), nlpar = "alphaSA"),
+                        prior(normal(0, .1), nlpar = "alphaSS"),
+                        prior(normal(0, .1), nlpar = "alphaSP")),
+              inits = "0",  
+              cores=4, 
+              chains=4,
+              iter=5000, 
+              thin=5,
+              control = list(adapt_delta = 0.99, max_treedepth = 18))
 
-  
-  
+plot(seedling_sumsur)
+summary(seedling_sumsur)
+
+saveRDS(sumsur, file="SUM.rds")
+savedsum<-readRDS("SUM.rds")
+
+
+
 ############################################
 ##OLD/PREVIOUS MODELS (just for reference)##
 ############################################
@@ -1389,4 +1422,3 @@ savedALP<-annual.logscale.percap
 #                     control = list(adapt_delta = 0.99, max_treedepth = 20))
 
 plot(seedling.simple)
-
