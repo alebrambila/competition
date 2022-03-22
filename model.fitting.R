@@ -650,7 +650,7 @@ fall.g/seeded_s
 
 #find germination fraction
 seedlings$fall.g<-as.integer(seedlings$fall.g)
-seedling.simple.gaussian<- brm(bf(fall.g  ~ survivalS * seeded_sm2 / (1+alphaSA*seeded_am2 + alphaSS*seeded_sm2 + alphaSP*starting_pm2), #update data terms with new from above
+seedling.simple.poisson<- brm(bf(fall.g  ~ survivalS * seeded_sm2 / (1+alphaSA*seeded_am2 + alphaSS*seeded_sm2 + alphaSP*starting_pm2), #update data terms with new from above
                                   survivalS +alphaSA +alphaSP+alphaSS~ 0 + warmtrt + time, 
                                   nl=TRUE),
                                family=poisson,
@@ -666,9 +666,9 @@ seedling.simple.gaussian<- brm(bf(fall.g  ~ survivalS * seeded_sm2 / (1+alphaSA*
                                thin=2,
                                control = list(adapt_delta = 0.9, max_treedepth = 16))
 
-plot(seedling.simple.gaussian)
-seedling.simple.gaussian
-saveRDS(seedling.simple.gaussian, file="s030122.rds")
+plot(seedling.simple.poisson)
+seedling.simple.poisson
+saveRDS(seedling.simple.gaussian, file="s032222.rds")
 #readRDS(seedling.simple.gaussian, file="s020122.rds")
 #try counterfactual plots anyway
 ## predict and plot COUNTERFACTUALS----
