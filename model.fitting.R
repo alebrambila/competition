@@ -11,9 +11,6 @@ library(gridExtra)
 library(ggpubr)
 
 
-# Jeff notes:
-# Alejandro: for seedlings, gaussian not working, but also should try binomial one - maybe more appropriate
-
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 source('data.cleaning.R')
@@ -63,77 +60,57 @@ ggplot(subset(annuals), aes(x=seeded_am2, y=percap, color=warmtrt)) +
 
 ### BRM fits ----
 #annuals.sc <- mutate(annuals, seeded_a=seeded_a/1000)
-annual.simple.gaussian <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2), # + alphaAS*seeded_s #switched seeded_a to seeded_am2 to get density, not sure if to switch pm2 to starting_pm2
-                                 lambdaA + alphaAA + alphaAP ~ warmtrt + (1|time),
+testannuals<-
+
+annual.simple.poisson <- brm(bf(as.integer(percap) ~  lambdaA / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2), # + alphaAS*seeded_s #switched seeded_a to seeded_am2 to get density, not sure if to switch pm2 to starting_pm2
+                                 lambdaA + alphaAA + alphaAP ~ 0 +warmtrt + time,
+                                 # + time,
                                  nl=TRUE), 
                               data = annuals,
-                              family = gaussian, 
-                              # This next line is the issue. The output for parameters I get for this is
-                              # lambdaA_Intercept and lambdaA_warmtrtwarm.  I interpret these as lambdaA_Intercept is the ambient lambda
-                              # and lambdaA_Intercept + lambdaA_warmtrtwarm is the warmed lambda. But lambda_Intercept and lambda_warmtrtwarm
-                              # have the same prior, so if it's as is it means the lambdaA_Intercept (ambient paramter) can go below zero (nonsensical)
-                              # and if it's forced to be positive lambdaA_warmtrtwarm can only be positive, meaning the effect of warming can 
-                              # only be positive. Maybe I'm misunderstanding something but it would be good to force actual lambdas positive
-                              # but not the effect of warming. 
+                              family = poisson, 
                               prior = c(prior(normal(0, 1), nlpar = "lambdaA"),
-                                        #  set_prior("uniform(0, 2)", class="Intercept",  nlpar = "lambdaA"), #an attempt to just set a lower bound for intercept to be positive
-                                        prior(normal(0, .1), nlpar = "alphaAA"),
-                                        prior(normal(0, .1), nlpar = "alphaAP")),
-                              inits="0",
+                                        prior(normal(.1, .1), nlpar = "alphaAA"),
+                                        prior(normal(.1, .1), nlpar = "alphaAP")),
+                            #  inits="0",
                               cores=4, 
                               chains=4,
-                              iter=5000, 
+                              iter=10000, 
                               thin=1,
                               refresh=100,
                               control = list(adapt_delta = 0.9, max_treedepth = 16))
 
-plot(annual.simple.gaussian)
-pairs(annual.simple.gaussian, pars = c('b_lambdaA_Intercept', 'b_lambdaA_warmtrtwarm', 'b_alphaAA_Intercept','b_alphaAA_warmtrtwarm', 'b_alphaAP_Intercept','b_alphaAP_warmtrtwarm'))
+annual.simple.poisson <- brm(bf(round(percap) ~  lambdaA / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2), # *100
+                                lambdaA + alphaAA + alphaAP  ~ 0 + warmtrt + time,
+                                nl=TRUE),
+                             data = annuals,
+                             family = poisson,
+                             prior = c(prior(normal(4, 4), nlpar = 'lambdaA'),
+                                       prior(normal(0.1, .1), nlpar = 'alphaAP'),
+                                       prior(normal(0.1, .1), nlpar = 'alphaAA')
+                             ),
+                             inits='0',
+                              cores=4,
+                              chains=4,
+                              iter=5000,
+                              thin=1,
+                              refresh=100,
+                              control = list(adapt_delta = 0.9, max_treedepth = 16))
+
+
+plot(annual.simple.poisson)
+
+pairs(annual.simple.poisson, pars = c('b_lambdaA_warmtrtamb', 'b_lambdaA_warmtrtwarm', 'b_alphaAA_warmtrtamb','b_alphaAA_warmtrtwarm', 'b_alphaAP_warmtrtamb','b_alphaAP_warmtrtwarm'))
 pairs(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 #look at the plot of relationship between no competition lambda and intraspecific competition
 # pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
 # pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
-#saveRDS(annual.simple.gaussian, file="aintercept.rds")
-
-annual.simple.gaussian<-readRDS(file="a030122.rds")
+saveRDS(annual.simple.poisson, file="a032222b.rds")
+annual.simple.poisson<-readRDS(file="a032222b.rds")
 
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
 
 plot(conditional_effects(annual.simple.gaussian), ask = FALSE)
-
-
-#just ambient
-#annual.simple.amb <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2),
-#                            lambdaA + alphaAA + alphaAP ~ (1|time),
-#                            nl=TRUE), 
-#                         data = subset(annuals, warmtrt="amb"),
-#                         prior = c(prior(normal(.5, .5), lb=0, nlpar = "lambdaA"), 
-#                                   prior(normal(.1, .1), nlpar = "alphaAA", lb=0),
-#                                   prior(normal(.1, .1), nlpar = "alphaAP", lb=0)),
-#                         inits = "0",  
-#                         cores=4, 
-#                         chains=4,
-#                         iter=10000, 
-#                         thin=1,
-#                         refresh=100,
-#                         control = list(adapt_delta = 0.98, max_treedepth = 18))
-#
-#annual.simple.warm <- brm(bf(percap ~  lambdaA*100 / (1 + alphaAA*seeded_am2 + alphaAP*starting_pm2),
-#                            lambdaA + alphaAA + alphaAP ~ (1|time),
-#                            nl=TRUE), 
-#                         data = subset(annuals, warmtrt="warm"),
-#                         prior = c(prior(normal(.5, .5), lb=0, nlpar = "lambdaA"), 
-#                                   prior(normal(.1, .1), nlpar = "alphaAA", lb=0),
-#                                   prior(normal(.1, .1), nlpar = "alphaAP", lb=0)),
-#                         inits = "0",  
-#                         cores=4, 
-#                         chains=4,
-#                         iter=10000, 
-#                         thin=1,
-#                         refresh=100,
-#                         control = list(adapt_delta = 0.98, max_treedepth = 18))
-
 
 
 
@@ -394,27 +371,28 @@ ggplot(dat_p, aes(x= starting_pm2, y=fecundity)) +
 #type is an important column - previously we have only run this with type="adult".  
 # the other types present are adult_g (obviously damaged by gophers) and newadult (a seedling that has become an adult)
 
-
-adult.simple.gaussian <- brm(bf(fecundity/20000 ~ lambdaP / (1+alphaPA*seeded_am2 + alphaPP*starting_pm2), # lambdaP*20000
-                                lambdaP + alphaPA + alphaPP ~ warmtrt + (1|time), 
+adult.simple.poisson <- brm(bf(fecundity ~ lambdaP / (1+alphaPA*seeded_am2 + alphaPP*starting_pm2), # lambdaP*20000
+                                lambdaP + alphaPA + alphaPP ~ 0 + warmtrt + time, 
                                 nl=TRUE), 
                              data = dat_p,
-                             family = gaussian, 
-                             prior = c(prior(normal(0, 1),nlpar = "lambdaP"), 
-                                       prior(normal(.001, .01), nlpar = "alphaPA"),
+                             family = poisson, 
+                             prior = c(prior(normal(10, 10),nlpar = "lambdaP"), 
+                                       prior(normal(.1, .1), nlpar = "alphaPA"),
                                        prior(normal(.1, .1), nlpar = "alphaPP")),
-                             inits = "0",  
+                         #    inits = "0",  
                              cores=3, 
                              chains=3,
-                             iter=5000, 
-                             thin=2,
+                             iter=3000, 
+                             thin=1,
                              control = list(adapt_delta = 0.9, max_treedepth = 16),
                              refresh=100,
 )
 
-conditional_effects(adult.simple.gaussian)
-adult.simple.gaussian
-plot(adult.simple.gaussian)
+conditional_effects(adult.simple.poisson)
+adult.simple.poisson
+plot(adult.simple.poisson)
+conditional_effects(adult.simple.poisson)
+
 #saveRDS(adult.simple.gaussian, file="adult_simple_JD.rds")
 saveRDS(adult.simple.gaussian, file="p030122.rds")
 #readRDS(adult.simple.gaussian, file="p020122.rds")
@@ -608,95 +586,6 @@ ggplot(subset(datp, comptrt=="none"), aes(x=warmtrt, y=out_p)) +
 
 
 
-
-#old ambient/warm ----
-perennial.lambda <- brm(bf(out_p+1 ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p)+1, # increased scale to 5000
-                           lambdaP ~ 1 + (1|block),
-                           alphaPA ~  1 + (1|block),# didnt add seedling competition on adults, dont think it would help here
-                           alphaPP ~  1 + (1|block),
-                           nl=TRUE),
-                        family=poisson, # switched to poisson
-                        data = subset(datp, warmtrt=="amb"),
-                        prior = c(prior(normal(1, .5), lb=0, nlpar = "lambdaP"), 
-                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPA"), # added bounds to the priors
-                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPP")),
-                        # inits = "0",  
-                        cores=4, 
-                        chains=4,
-                        refresh=100,
-                        iter=10000, 
-                        thin=3
-                        ,control = list(adapt_delta = 0.99, max_treedepth = 16)
-)
-
-perennial.lambda <- brm(bf(out_p+1 ~ lambdaP*5000 / (1+alphaPA*seeded_a + alphaPP*density_p)+1, # increased scale to 5000
-                           lambdaP ~ 1 + (1|block),
-                           alphaPA ~  1 + (1|block),# didnt add seedling competition on adults, dont think it would help here
-                           alphaPP ~  1 + (1|block),
-                           nl=TRUE),
-                        family=poisson, # switched to poisson
-                        data = subset(datp, warmtrt=="warm"),
-                        prior = c(prior(normal(1, .5), lb=0, nlpar = "lambdaP"), 
-                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPA"), # added bounds to the priors
-                                  prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaPP")),
-                        # inits = "0",  
-                        cores=4, 
-                        chains=4,
-                        refresh=100,
-                        iter=10000, 
-                        thin=3
-                        ,control = list(adapt_delta = 0.99, max_treedepth = 16)
-)
-#plw1<-perennial.lambda
-#stancode(perennial.lambda)
-#perennial.lambda
-#plot(perennial.lambda)
-#fixef(perennial.lambda)
-#conditional_effects(readPL)%>% plot(points=T)
-conditional_effects(readPL, effects = "seeded_a:warmtrt")%>% plot(points=T)
-conditional_effects(readPL, effects = "density_p:warmtrt")%>% plot(points=T)
-
-#the closes to a decent fit i've gotten so far, can't replicate it when I do the annual and warmed seperately. 
-readPL<-readRDS("PL.rds") 
-
-
-saveRDS(perennial.lambda.w, file="PL070121w.rds")
-saveRDS(perennial.lambda.a, file="PL070121a.rds")
-
-adult.warm.model<-readRDS("PL070121w.rds")
-adult.amb.model<-readRDS("PL070121a.rds") #this is ambient fitted alone, way lower ESS?
-
-
-### 2.2 Perennial fecundity logscaled ----
-perennial.lambda.logscale <- brm(bf(log(1+out_p) ~ log(exp(log(lambdaP) - log((1+alphaPA*(seeded_a+1) + alphaPP*(density_p+1))))),
-                                    lambdaP ~ warmtrt + (1|block),
-                                    alphaPA ~  warmtrt + (1|block),# didnt add seedling competition on adults, dont think it would help
-                                    alphaPP ~  warmtrt + (1|block),
-                                    nl=TRUE),
-                                 data = subset(datp),
-                                 prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaP"), 
-                                           prior(normal(0, .2), nlpar = "alphaPA"),
-                                           prior(normal(0, .2), nlpar = "alphaPP")),
-                                 inits = "0",  
-                                 cores=4, 
-                                 chains=4,
-                                 refresh=100,
-                                 iter=20000, 
-                                 # thin=2
-                                 #  ,control = list(adapt_delta = 0.99, max_treedepth = 17)
-)
-
-perennial.lambda.logscale
-plot(perennial.lambda.logscale)
-
-conditional_effects(perennial.lambda.logscale)%>% plot(points=T)
-conditional_effects(perennial.lambda.logscale, effects = "seeded_a:warmtrt")%>% plot(points=T)
-conditional_effects(perennial.lambda.logscale, effects = "density_p:warmtrt")%>% plot(points=T)
-
-savedPLL<-perennial.lambda.logscale
-#saveRDS(savedPLL, file="PLL.rds")
-#readPLL<-readRDS("PLL.rds")
-
 #############################################
 ### 3. PERENNIAL SEEDLINGS  ----
 
@@ -759,13 +648,14 @@ fall.g/seeded_s
 # nam2 refers to the number of 'new adults' per meter square, seedlings that were left as phytometers to see in the next year
 #now the model runs off of pm2, but it could be adapted for dpm2, nam2, or starting pm2 - see how their fecundities vary below:
 
-
-seedling.simple.gaussian<- brm(bf(fall.g/seeded_sm2 ~ lambdaS / (1+alphaSA*seeded_am2 + alphaSS*seeded_sm2 + alphaSP*starting_pm2), #update data terms with new from above
-                                  lambdaS +alphaSA +alphaSP+alphaSS~ warmtrt + (1|time), 
+#find germination fraction
+seedlings$fall.g<-as.integer(seedlings$fall.g)
+seedling.simple.gaussian<- brm(bf(fall.g  ~ survivalS * seeded_sm2 / (1+alphaSA*seeded_am2 + alphaSS*seeded_sm2 + alphaSP*starting_pm2), #update data terms with new from above
+                                  survivalS +alphaSA +alphaSP+alphaSS~ 0 + warmtrt + time, 
                                   nl=TRUE),
-                               family=gaussian,
+                               family=poisson,
                                data = seedlings,   #running this with limited dataset as in the figures above (only in seedling comptrts)
-                               prior = c(prior(normal(.05, .1), nlpar = "lambdaS"), 
+                               prior = c(prior(normal(.0, 1), nlpar = "survivalS"), 
                                          prior(normal(0.1, .1),    nlpar = "alphaSA"),
                                          prior(normal(0.1, .1),    nlpar = "alphaSS"),
                                          prior(normal(0.1, .1),    nlpar = "alphaSP")),
@@ -1067,24 +957,6 @@ ggplot(pred.seedling, aes(x = density_p, y = Estimate, color=warmtrt)) +  #why i
   ylab("seedling survival")
 
 
-
-#separate warmed and amb ----
-seedling.binomial.w<- brm(bf(fall20_s|trials(seeded_s.g) ~ lambdaS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                             lambdaS +alphaSA +alphaSP+alphaSS~ 1+ (1|block), nl=TRUE),
-                          family=binomial,
-                          data = subset(dat.sumsurv, seeded_s>150&warmtrt=="warm"),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                          prior = c(prior(normal(.015, .015), lb=0, nlpar = "lambdaS"), 
-                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSA"),
-                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSS"),
-                                    prior(normal(0, .1), lb=0, ub=1, nlpar = "alphaSP")),
-                          inits = "0",  
-                          cores=4, 
-                          chains=4,
-                          iter=15000, 
-                          thin=5,
-                          control = list(adapt_delta = 0.9, max_treedepth = 18))
-)
-
 savedps2<-readRDS("PS.rds") #previous best, model w/ warmed and ambient
 
 saveRDS(seedling.binomial.a, file="PS070321a")
@@ -1093,332 +965,5 @@ saveRDS(seedling.binomial.w, file="PS070321w")
 seedling.a<-readRDS("PS070321a")
 seedling.w<-readRDS("PS070321w")
 
-
-
-# conditional_effects(savedps2)%>% plot(points=T) # I am getting errors when I try to see conditional effects of the binomial model.  It says that it is exporting 
-#  conditional_effects(savedPS, conditions = data.frame(trials = 100), effects = "seeded_a:warmtrt")%>% plot(points=T)
-#  conditional_effects(savedPS, effects = "density_p:warmtrt")%>% plot(points=T)
-#  plot(conditional_effects(savedPS, conditions = data.frame(trials = 10)), points = T)
-#saveRDS(savedPS, file="PS.rds")
-# savedps2<-readRDS("PS.rds")
-
-### 3.2 Spring (seeds in:stems out) perennial seedlings binomial (first half of 3.1) (SKIP - DIDNT SEEM LIKE 3.2 or 3.3 added much)----
-sprsur.binomial<- brm(bf(spring_20s|trials(seeded_s) ~ sprsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                         sprsurS ~ warmtrt+ (1|block), 
-                         alphaSA ~  warmtrt+ (1|block), 
-                         alphaSP ~  warmtrt+ (1|block), 
-                         alphaSS ~  warmtrt+ (1|block), nl=TRUE),
-                      family=binomial,
-                      data = subset(dat.sprsurv, seeded_s>150),   #running this with limited dataset as in teh figures above (only in seedling comptrts)
-                      prior = c(prior(normal(0, .5), lb=0, nlpar = "sprsurS"), 
-                                prior(normal(0, .1), nlpar = "alphaSA"),
-                                prior(normal(0, .1), nlpar = "alphaSS"),
-                                prior(normal(0, .1), nlpar = "alphaSP")),
-                      inits = "0",  
-                      cores=4, 
-                      chains=4,
-                      iter=10000, 
-                      thin=5,
-                      control = list(adapt_delta = 0.9, max_treedepth = 15))
-)
-
-sprsur
-summary(sprsur)
-plot(sprsur)
-fixef(sprsur)
-conditional_effects(sprsur)
-
-# saveRDS(sprsur.binomial, file="SPR.rds")
-#savedspr<-readRDS("SPR.rds")
-
-### 3.3 Summer (stems in:adults out) perennial seedlings binomial (second half of 3.1) ----
-sumsur <- brm(bf(fall20_s|trials(spring20_s.g) ~ sumsurS / (1+alphaSA*seeded_a + alphaSS*seeded_s + alphaSP*density_p), 
-                 sumsurS ~ warmtrt + (1|block), 
-                 alphaSA ~  warmtrt + (1|block), 
-                 alphaSP ~  warmtrt + (1|block), 
-                 alphaSS ~  warmtrt + (1|block), nl=TRUE),
-              family=binomial,
-              data = subset(dat.sumsurv, seeded_s>150),
-              prior = c(prior(normal(1, 1), lb=0, nlpar = "sumsurS"), 
-                        prior(normal(0, .1), nlpar = "alphaSA"),
-                        prior(normal(0, .1), nlpar = "alphaSS"),
-                        prior(normal(0, .1), nlpar = "alphaSP")),
-              inits = "0",  
-              cores=4, 
-              chains=4,
-              iter=5000, 
-              thin=5,
-              control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-plot(seedling_sumsur)
-summary(seedling_sumsur)
-
-saveRDS(sumsur, file="SUM.rds")
-savedsum<-readRDS("SUM.rds")
-
-
-
-############################################
-##OLD/PREVIOUS MODELS (just for reference)##
-############################################
-#########################################
-##### ANNUAL STEMS:SEEDS-OUT LAMBDA ----
-
-###visualizations ----
-ggplot(dat, aes(x=density_p, y=out_a, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt), width=1)+
-  geom_smooth(method = 'lm',formula = y ~ x + I(x^2), se=F)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("Np(t))")
-
-ggplot(dat, aes(x=density_a, y=out_a, color=warmtrt)) +
-  geom_jitter(aes(shape=comptrt), width=1)+
-  stat_smooth(method = "nls",
-              formula = y ~ a/(1+b*x),
-              method.args = list(start = list(a = 300, b = .1)),
-              se = FALSE)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t+1)")+xlab("Na(t))")
-
-# check replication within blocks
-table(dat$warmtrt, dat$block)
-
-### BRM fit AB: SCALED ----
-annual_lambda <- brm(bf(out_a ~ lambdaA*3000 / (1+alphaAA*density_a + alphaAP*density_p), 
-                        lambdaA ~ warmtrt + (1|block), 
-                        alphaAA ~  warmtrt + (1|block), 
-                        alphaAP ~  warmtrt + (1|block), nl=TRUE),
-                     data = dat,
-                     prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                               prior(normal(0, .1), nlpar = "alphaAA"),
-                               prior(normal(0, .1), nlpar = "alphaAP")),
-                     inits = "0",  
-                     cores=4, 
-                     chains=4,
-                     iter=5000, 
-                     thin=5,
-                     control = list(adapt_delta = 0.99, max_treedepth = 16))
-annual_lambda
-plot(annual_lambda)
-fixef(annual_lambda)
-conditional_effects(annual_lambda)
-
-# just ambient scaled
-annual_lambda.amb <- brm(bf(out_a ~ lambdaA*3000 / (1+alphaAA*density_a + alphaAP*density_p), 
-                            lambdaA ~ 1 + (1|block), 
-                            alphaAA ~  1 + (1|block), 
-                            alphaAP ~  1 + (1|block), nl=TRUE),
-                         data = subset(dat, warmtrt="amb"),
-                         prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                                   prior(normal(0, .1), nlpar = "alphaAA"),
-                                   prior(normal(0, .1), nlpar = "alphaAP")),
-                         inits = "0",  cores=4, chains=4, iter=5000, thin=5,
-                         control = list(adapt_delta = 0.99, max_treedepth = 16))
-
-# just warmed scaled
-annual_lambda.amb <- brm(bf(out_a ~ lambdaA*3000 / (1+alphaAA*density_a + alphaAP*density_p), 
-                            lambdaA ~ 1 + (1|block), 
-                            alphaAA ~  1 + (1|block), 
-                            alphaAP ~  1 + (1|block), nl=TRUE),
-                         data = subset(dat, warmtrt="warm"),
-                         prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                                   prior(normal(0, .1), nlpar = "alphaAA"),
-                                   prior(normal(0, .1), nlpar = "alphaAP")),
-                         inits = "0", cores=4, chains=4,iter=5000,thin=5,
-                         control = list(adapt_delta = 0.99, max_treedepth = 16))
-# just ambient log-scaled
-annual.ambient <- brm(bf(log(1+out_a) ~ exp(log(lambdaA) - log((1+alphaAA*(density_a+1) + alphaAP*(density_p+1)))), 
-                         lambdaA ~ 1+(1|block),
-                         alphaAA ~ 1+ (1|block), 
-                         alphaAP ~ 1+  (1|block), nl=TRUE),
-                      data = subset(annuals, warmtrt=="amb"),
-                      prior = c(prior(normal(8, 2), lb=0, nlpar = "lambdaA"), 
-                                prior(normal(0, .1), nlpar = "alphaAA"),
-                                prior(normal(0, .1), nlpar = "alphaAP")),
-                      inits = "0", cores=4, chains=4, iter=5000, 
-                      control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-# just warmed log-scaled
-annual.ambient <- brm(bf(log(1+out_a) ~ exp(log(lambdaA) - log((1+alphaAA*(density_a+1) + alphaAP*(density_p+1)))), 
-                         lambdaA ~ 1+(1|block),
-                         alphaAA ~ 1+(1|block), 
-                         alphaAP ~ 1+(1|block), nl=TRUE),
-                      data = subset(annuals, warmtrt=="warm"),
-                      prior = c(prior(normal(8, 2), lb=0, nlpar = "lambdaA"), 
-                                prior(normal(0, .1), nlpar = "alphaAA"),
-                                prior(normal(0, .1), nlpar = "alphaAP")),
-                      inits = "0",  cores=4, chains=4, iter=5000, 
-                      control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-
-##### ANNUAL SEEDS-IN:STEMS ----
-### visualize ----
-ggplot(dat.surv.a, aes(x=seeded_a, y=spring20_a)) +
-  geom_jitter(aes(color=warmtrt), width=100)+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+ylab("Na(t)")+xlab("na(t))")
-
-ggplot(dat.surv.a, aes(x=warmtrt, y=spring20_a/seeded_a)) +
-  geom_boxplot()+
-  # geom_point(color='blue') +
-  geom_jitter(width=.1) # 
-
-# check replication within blocks
-table(dat.surv$warmtrt, dat.surv$block) # 3 per block
-
-
-### BRM fit ----
-annual_sprsur <- brm(bf(spring20_a|trials(seeded_a) ~ warmtrt + (1|block)), 
-                     data = dat.surv.a,
-                     family=binomial,
-                     inits = "0",  
-                     cores=4, 
-                     chains=4,
-                     iter=5000, 
-                     thin=5,
-                     control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-stancode(annual_sprsur)
-annual_sprsur
-summary(annual_sprsur)
-plot(annual_sprsur)
-fixef(annual_sprsur)
-conditional_effects(annual_sprsur)
-
-# Graph probabilities ~ treatment ----
-nd <- tibble(warmtrt = c("amb","warm"), block=NA, seeded_a=1)
-n_iter<-100
-
-fitted(annual_sprsur,newdata = nd, summary = TRUE ) %>%
-  as_tibble() 
-
-f <-
-  fitted(annual_sprsur,
-         newdata  = nd,
-         summary = F,
-         nsamples = n_iter) %>% 
-  as_tibble() %>%
-  rename(amb = V1, warm=V2) %>%
-  pivot_longer(cols=amb:warm, names_to="treatment", values_to="probability")
-f
-
-f %>% ggplot(aes(x=treatment, y=probability))+
-  stat_pointinterval(.width = c(.66, .95))
-
-
-## 1.1 Simple (seeds in:out) annuals percapita and scaled----
-annual.simple.a <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                          lambdaA ~ 1 + (1|block), # only lambda vary by warmtrt
-                          alphaAA + alphaAP + alphaAS ~ 1 + (1|block), #just one overall alpha, simplify!
-                          nl=TRUE), 
-                       data = subset(annuals, warmtrt=="amb"),
-                       family = poisson, #poisson distribution based on lina's suggestion.
-                       prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAA"),
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAS"),  #added term for seedling competitive effect
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAP")),
-                       inits = "0",  
-                       cores=4, 
-                       chains=4,
-                       iter=20000, 
-                       thin=1,
-                       refresh=100,
-                       control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-annual.simple.w <- brm(bf(as.integer(percap) ~ lambdaA*100 / (1 + alphaAA*seeded_a + alphaAP*pm2 + alphaAS*seeded_s), #changed from old version: annual.simple <- brm(bf(plotseeds ~ (lambdaA*seeded_a) / (1+alphaAA*seeded_a + alphaAP*pm2), 
-                          lambdaA ~ 1 + (1|block), # only lambda vary by warmtrt
-                          alphaAA + alphaAP + alphaAS ~ 1 + (1|block), 
-                          nl=TRUE), 
-                       data = subset(annuals, warmtrt=="warm"),
-                       family = poisson, 
-                       prior = c(prior(normal(1, 1), lb=0, nlpar = "lambdaA"), 
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAA"),
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAS"),  #added term for seedling competitive effect
-                                 prior(normal(0, 1), lb=0, ub=1, nlpar = "alphaAP")),
-                       inits = "0",  
-                       cores=4, 
-                       chains=4,
-                       iter=20000, 
-                       thin=1,
-                       refresh=100,
-                       control = list(adapt_delta = 0.99, max_treedepth = 18))
-
-#save both ambient and warmed
-saveRDS(annual.simple, file="A063021a.rds") #use this when I have a good run to save it as a file, can add date to filename
-saveRDS(annual.simple, file="A063021w.rds") #use this when I have a good run to save it as a file, can add date to filename
-
-#read back in ambient and warmed from most recent saved file
-annual.warm.model<-readRDS("A063021w.rds")
-annual.amb.model<-readRDS("A063021a.rds")
-
-conditional_effects(annual.warm.model)%>% plot(points=T)
-
-
-
-### 1.2 Simple annuals logscaled (SKIP)----
-# example from hallett: m1A <- as.formula(log(AVseedout +1) ~ log(ag*(AVseedin+1)*exp(log(lambda)-log((1+aiE*(ERseedin+1)*eg+aiA*(AVseedin+1)*ag)))))
-annual.logscale <- brm(bf(log(1+plotseeds) ~ log((seeded_a+1)*exp(log(lambdaA) - log((1+alphaAA*(seeded_a+1) + alphaAP*(pm2+1)+ alphaAS*(sm2+1))))), 
-                          lambdaA ~ warmtrt+(1|block),
-                          alphaAA ~ warmtrt+ (1|block), 
-                          alphaAS ~ warmtrt+ (1|block), 
-                          alphaAP ~ warmtrt+  (1|block), nl=TRUE),
-                       data = annuals,
-                       prior = c(prior(normal(8, 3), lb=0, nlpar = "lambdaA"), 
-                                 prior(normal(0, .1), nlpar = "alphaAA"),
-                                 prior(normal(0, .1), nlpar = "alphaAS"),
-                                 prior(normal(0, .1), nlpar = "alphaAP")),
-                       inits = "0",  
-                       cores=4, 
-                       chains=4,
-                       iter=10000, 
-                       control = list(adapt_delta = 0.95, max_treedepth = 16))
-savedAL<-annual.logscale
-#saveRDS(savedAL, file="AL.rds")
-#readAL<-readRDS("AL.rds")
-
-
-### 1.3 Simple annuals percapita & logscaled
-annual.logscale.percap <- brm(bf(log(1+percap) ~ log(exp(log(lambdaA) - log((1+alphaAA*(seeded_a+1) + alphaAP*(pm2+1)+ alphaAS*(sm2+1))))), 
-                                 lambdaA ~ warmtrt+(1|block),
-                                 alphaAA ~ warmtrt+ (1|block), 
-                                 alphaAS ~ warmtrt+ (1|block), 
-                                 alphaAP ~ warmtrt+  (1|block), nl=TRUE),
-                              data = annuals,
-                              prior = c(prior(normal(8, 3), lb=0, nlpar = "lambdaA"), 
-                                        prior(normal(0, .1), nlpar = "alphaAA"),
-                                        prior(normal(0, .1), nlpar = "alphaAS"),
-                                        prior(normal(0, .1), nlpar = "alphaAP")),
-                              inits = "0",  
-                              cores=4, 
-                              chains=4,
-                              iter=5000, 
-                              control = list(adapt_delta = 0.95, max_treedepth = 16))
-
-savedALP<-annual.logscale.percap
-#saveRDS(savedALP, file="ALP.rds")
-#readAL<-readRDS("ALP.rds")
-
-
-### Final Params: seedling competitive effects, not sure how these work----
-# value from mordecai is .5, oddly much higher than other competitive effects in the model...?
-#alpha_as=theta*alpha_aa
-#alpha_ps=theta*alpha_pa
-
-#theta~Uniform(0, 1)
-#normal(old) seedling model----
-#seedling.simple <- brm(bf(fall20_s.g ~ (lambdaS*seeded_s) / (1+alphaSA*seeded_a + alphaSP*density_p+ alphaSS*seeded_s), 
-#                        lambdaS ~ warmtrt + (1|block), 
-#                        alphaSA ~  warmtrt + (1|block), 
-#                        alphaSP ~  warmtrt + (1|block),
-#                        alphaSS ~  warmtrt + (1|block),
-#                        nl=TRUE),
-#                     data = seedlings,
-#                     prior = c(prior(normal(.001, .0002), lb=0, nlpar = "lambdaS"), 
-#                               prior(normal(0, .1), nlpar = "alphaSA"),
-#                               prior(normal(0, .1), nlpar = "alphaSS"),
-#                               prior(normal(0, .1), nlpar = "alphaSP")),
-#                     inits = "0",  
-#                     cores=4, 
-#                     chains=4,
-#                     iter=100000, 
-#                     thin=5,
-#                     control = list(adapt_delta = 0.99, max_treedepth = 20))
 
 plot(seedling.simple)
