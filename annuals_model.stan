@@ -1,13 +1,4 @@
-//
-// This Stan program defines a simple model, with a
-// vector of values 'y' modeled as normally distributed
-// with mean 'mu' and standard deviation 'sigma'.
-//
-// Learn more about model development with Stan at:
-//
-//    http://mc-stan.org/users/interfaces/rstan.html
-//    https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
-
+//Annual population growth model
 
 // The data is all of length 'N'
 // Data inputs include 'percap' per-capita seed production of annuals at the plot level
@@ -54,11 +45,11 @@ model {
   vector[N] alphaAP_e;
 
   // set priors
-  lambdaA_amb ~ normal(0, 1);
+  lambdaA_amb ~ normal(4, .5);
   lambdaA_slope ~ normal(0, 1);
-  alphaAA_amb ~ normal(0, 1);
+  alphaAA_amb ~ normal(-2, 1);
   alphaAA_slope ~ normal(0, 1);
-  alphaAP_amb ~ normal(0, 1);
+  alphaAP_amb ~ normal(-2, 1);
   alphaAP_slope ~ normal(0, 1);  
   
   // define the model

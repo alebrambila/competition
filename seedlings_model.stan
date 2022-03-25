@@ -49,13 +49,13 @@ model {
 
 
   // set priors
-  survivalS_amb ~ normal(0, 1);
+  survivalS_amb ~ normal(-4.5, 1);
   survivalS_slope ~ normal(0, 1);
-  alphaSA_amb ~ normal(0, 1);
+  alphaSA_amb ~ normal(-2, 1);
   alphaSA_slope ~ normal(0, 1);
-  alphaSP_amb ~ normal(0, 1);
+  alphaSP_amb ~ normal(-2, 1);
   alphaSP_slope ~ normal(0, 1);  
-    alphaSS_amb ~ normal(0, 1);
+    alphaSS_amb ~ normal(-2, 1);
   alphaSS_slope ~ normal(0, 1);  
   
   // define the model
@@ -68,5 +68,7 @@ model {
   }
   survival ~ poisson(survival_hat);
 }
+
+
 
 
