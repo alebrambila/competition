@@ -7,7 +7,7 @@
 // time, whether data is from 2020 or 2021
 data {
   int<lower = 1> N;
-  int<lower=0> survival[N]; 
+  int<lower=0> survivors[N]; 
   vector[N] seeded_am2;
     vector[N] seeded_sm2;
   vector[N] starting_pm2;
@@ -24,8 +24,8 @@ data {
 // amb refers to the ambient treatment, slope refers to marinal effect of warming
 // amb + slope = warmed parameter
 parameters {
-  real lambdaS_amb;
-  real lambdaS_slope;
+  real survivalS_amb;
+  real survivalS_slope;
   real alphaSA_amb;
   real alphaSA_slope;
   real alphaSP_amb;
@@ -41,16 +41,16 @@ parameters {
 // and standard deviation 'sigma'.
 model {
   // intermediate objects
-  vector[N] survival_hat; 
-  vector[N] lambdaS_e; //for each data point, what is data for relevant environment
+  vector[N] survivors_hat; 
+  vector[N] survivalS_e; //for each data point, what is data for relevant environment
   vector[N] alphaSA_e;
   vector[N] alphaSP_e;
-    vector[N] alphaSS_e;
+  vector[N] alphaSS_e;
 
 
   // set priors
-  lambdaS_amb ~ normal(0, 1);
-  lambdaS_slope ~ normal(0, 1);
+  survivalS_amb ~ normal(0, 1);
+  survivalS_slope ~ normal(0, 1);
   alphaSA_amb ~ normal(0, 1);
   alphaSA_slope ~ normal(0, 1);
   alphaSP_amb ~ normal(0, 1);
@@ -60,11 +60,11 @@ model {
   
   // define the model
   for(i in 1:N){
-    lambdaS_e[i] = exp(lambdaS_amb + lambdaS_slope * warmtrt[i]);
+    survivalS_e[i] = exp(survivalS_amb + survivalS_slope * warmtrt[i]);
     alphaSA_e[i] = exp(alphaSA_amb + alphaSA_slope * warmtrt[i]);
     alphaSP_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
       alphaSS_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
-    survival_hat[i] = lambdaS_e[i] / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
+    survivors_hat[i] = survivalS_e[i] * seeded_sm2 / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
   }
   survival ~ poisson(survival_hat);
 }
