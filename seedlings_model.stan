@@ -9,7 +9,7 @@ data {
   int<lower = 1> N;
   int<lower=0> survivors[N]; 
   vector[N] seeded_am2;
-    vector[N] seeded_sm2;
+  vector[N] seeded_sm2;
   vector[N] starting_pm2;
   int warmtrt[N]; //change to 0 vs. 1
   //int time[N];
@@ -55,7 +55,7 @@ model {
   alphaSA_slope ~ normal(0, 1);
   alphaSP_amb ~ normal(-2, 1);
   alphaSP_slope ~ normal(0, 1);  
-    alphaSS_amb ~ normal(-2, 1);
+  alphaSS_amb ~ normal(-2, 1);
   alphaSS_slope ~ normal(0, 1);  
   
   // define the model
@@ -63,10 +63,10 @@ model {
     survivalS_e[i] = exp(survivalS_amb + survivalS_slope * warmtrt[i]);
     alphaSA_e[i] = exp(alphaSA_amb + alphaSA_slope * warmtrt[i]);
     alphaSP_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
-      alphaSS_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
-    survivors_hat[i] = survivalS_e[i] * seeded_sm2 / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
+    alphaSS_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
+    survivors_hat[i] = survivalS_e[i] * seeded_sm2[i] / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
   }
-  survival ~ poisson(survival_hat);
+  survivors ~ poisson(survivors_hat);
 }
 
 
