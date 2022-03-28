@@ -99,13 +99,15 @@ annual.simple.poisson <- brm(bf(round(percap) ~  lambdaA / (1 + alphaAA*seeded_a
 
 plot(annual.simple.poisson)
 
+fixef(annual.simple.poisson)
+
 pairs(annual.simple.poisson, pars = c('b_lambdaA_warmtrtamb', 'b_lambdaA_warmtrtwarm', 'b_alphaAA_warmtrtamb','b_alphaAA_warmtrtwarm', 'b_alphaAP_warmtrtamb','b_alphaAP_warmtrtwarm'))
 pairs(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 #look at the plot of relationship between no competition lambda and intraspecific competition
 # pairs(PrelimFit, pars = c("lambdas", "alpha_generic", "alpha_intra"))
 # pairs(annual.simple.gaussian, pars = c(“lambdaA”, “alphaAA”, “alphaAP”)
 saveRDS(annual.simple.poisson, file="a032222b.rds")
-annual.simple.poisson<-readRDS(file="a032222b.rds")
+annual.simple.gaussian<-readRDS(file="a030122.rds")
 
 ## Get parameters ----
 get_variables(annual.simple.gaussian)
@@ -376,19 +378,19 @@ adult.simple.poisson <- brm(bf(fecundity ~ lambdaP / (1+alphaPA*seeded_am2 + alp
                                 nl=TRUE), 
                              data = dat_p,
                              family = poisson, 
-                             prior = c(prior(normal(10, 10),nlpar = "lambdaP"), 
-                                       prior(normal(.1, .1), nlpar = "alphaPA"),
-                                       prior(normal(.1, .1), nlpar = "alphaPP")),
-                         #    inits = "0",  
+                             prior = c(prior(normal(10, 5),nlpar = "lambdaP", lb=7), 
+                                       prior(normal(0.1, .1), nlpar = "alphaPA"),
+                                       prior(normal(0.1, .1), nlpar = "alphaPP")),
+                            inits = "random",  
                              cores=3, 
                              chains=3,
-                             iter=3000, 
+                             iter=1500, 
                              thin=1,
-                             control = list(adapt_delta = 0.9, max_treedepth = 16),
+                             control = list(adapt_delta = 0.99, max_treedepth = 16),
                              refresh=100,
 )
 
-conditional_effects(adult.simple.poisson)
+
 adult.simple.poisson
 plot(adult.simple.poisson)
 conditional_effects(adult.simple.poisson)
@@ -655,7 +657,7 @@ seedling.simple.poisson<- brm(bf(fall.g  ~ survivalS * seeded_sm2 / (1+alphaSA*s
                                   nl=TRUE),
                                family=poisson,
                                data = seedlings,   #running this with limited dataset as in the figures above (only in seedling comptrts)
-                               prior = c(prior(normal(.0, 1), nlpar = "survivalS"), 
+                               prior = c(prior(normal(-4, 1), nlpar = "survivalS"), 
                                          prior(normal(0.1, .1),    nlpar = "alphaSA"),
                                          prior(normal(0.1, .1),    nlpar = "alphaSS"),
                                          prior(normal(0.1, .1),    nlpar = "alphaSP")),
