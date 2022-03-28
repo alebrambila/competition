@@ -5,7 +5,7 @@ rstan_options(auto_write = TRUE)
 
 source('data.cleaning.R')
 
-#ANNUALS
+#ANNUALS ----
 annuals2020<-subset(annuals, time==2020)%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          percap=as.integer(percap))%>%
@@ -82,19 +82,29 @@ annuals_fit2021 <- stan(file="annuals_model.stan",
                         control = list(adapt_delta = 0.9, max_treedepth = 10),
                         init = initials1)
 
-traceplot(annuals_fit, pars="lambdaA_amb")
-pairs(annuals_fit, pars=c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
+#traceplot(annuals_fit, pars="lambdaA_amb")
+#pairs(annuals_fit, pars=c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
 # pairs(no_dist_seeds_brho_hi_hi, pars = c('lambda_int', 'lambda_slope')
 
 ### Save posterior distributions to file
-save(annuals_fit, file = "annuals_fit032122.rdata")
+#save(annuals_fit, file = "annuals_fit032122.rdata")
 #annuals_fit<-load("annuals_fit032122.rdata")
 
 ## Look at resulting estimated parameter distributions
 stan_dens(annuals_fit2020, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
 stan_dens(annuals_fit2021, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
 
-annuals_estimates <-as.data.frame(annuals_fit2020)%>%
+annuals_estimates2020 <-as.data.frame(annuals_fit2020)%>%
+  mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
+         alphaAA_warm=alphaAA_amb+alphaAA_slope,
+         alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
+  select(-lambdaA_slope, -alphaAA_slope, -alphaAP_slope)%>%
+  gather(param, value, 1:7)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))
+
+annuals_estimates2021 <-as.data.frame(annuals_fit2021)%>%
   mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
          alphaAA_warm=alphaAA_amb+alphaAA_slope,
          alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
@@ -127,7 +137,7 @@ ggplot(subset(annuals, time==2020))+
 
 
 
-#ADULT PERENNIALS
+#ADULT PERENNIALS ----
 
 #check prior by finiding max and mean percap of the highest treatment
 adults_lambdaprior<-adults%>%
@@ -210,6 +220,26 @@ stan_dens(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", 
 stan_dens(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
 
 
+adults_estimates2020 <-as.data.frame(adults_fit2020)%>%
+  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
+         alphaPA_warm=alphaPA_amb+alphaPA_slope,
+         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
+  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)%>%
+  gather(param, value, 1:7)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))
+
+adults_estimates2021 <-as.data.frame(adults_fit2021)%>%
+  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
+         alphaPA_warm=alphaPA_amb+alphaPA_slope,
+         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
+  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)%>%
+  gather(param, value, 1:7)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))
+
 
 #SEEDLING PERENNIALS
 
@@ -252,21 +282,21 @@ annuals_lambdaprior<-seedlings%>%
 
 
 #2020
-N <- length(seedlings2020$survival)
-survival <- seedlings2020$survival
+N <- length(seedlings2020$survivors)
+survivors <- seedlings2020$survivors
 warmtrt <- seedlings2020$warmtrt
 starting_pm2 <- seedlings2020$starting_pm2
 seeded_am2 <- seedlings2020$seeded_am2
 seeded_sm2 <- seedlings2020$seeded_sm2
 #2021
-N <- length(seedlings2021$survival)
-survival <- seedlings2021$survival
+N <- length(seedlings2021$survivors)
+survivors <- seedlings2021$survivors
 warmtrt <- seedlings2021$warmtrt
 starting_pm2 <- seedlings2021$starting_pm2
 seeded_am2 <- seedlings2021$seeded_am2
 seeded_sm2 <- seedlings2021$seeded_sm2
 
-seedlings_datavector <- c("N", "survival", "seeded_am2","seeded_sm2", "starting_pm2", "warmtrt")
+seedlings_datavector <- c("N", "survivors", "seeded_am2","seeded_sm2", "starting_pm2", "warmtrt")
 
 initials <- list(lambdaS_amb=7, lambdaS_slope=0, 
                  alphaSA_amb=-1, alphaSA_slope=0, 
@@ -275,7 +305,7 @@ initials <- list(lambdaS_amb=7, lambdaS_slope=0,
 
 initials1<- list(initials, initials, initials)
 
-seedlings_fit <- stan(file="seedlings_model.stan", 
+seedlings_fit2021 <- stan(file="seedlings_model.stan", 
                    data=seedlings_datavector,
                    iter=3000,
                    chains = 3,
@@ -292,10 +322,32 @@ save(seedlings_fit, file = "seedlings_fit032122.rdata")
 #annuals_fit<-load("adults_fit032122.rdata")
 
 ## Look at resulting estimated parameter distributions
-stan_dens(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-#remember, survival (lambdaS) is scaled up by 10,000X so a value of exp(4.4)/10,000 is actually 0.8% survival, or ~ 1 in 100
+stan_dens(seedlings_fit2020, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
+stan_dens(seedlings_fit2021, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
 
+seedlings_estimates2020 <-as.data.frame(seedlings_fit2020)%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope,
+         alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)%>%
+  gather(param, value, 1:9)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))%>%
+  filter(param!="lp__")
 
+seedlings_estimates2021 <-as.data.frame(seedlings_fit2021)%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope,
+         alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)%>%
+  gather(param, value, 1:9)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))%>%
+  filter(param!="lp__")
 
 ## Extract all parameter estimates
 annuals_estimates <- rstan::extract(annuals_fit)
