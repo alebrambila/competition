@@ -350,7 +350,7 @@ seedlings_estimates2021 <-as.data.frame(seedlings_fit2021)%>%
   filter(param!="lp__")
 
 ## Extract all parameter estimates
-annuals_estimates <- rstan::extract(annuals_fit)
+annuals_estimates <- rstan::extract(annuals_fit2020)
 adults_estimates <- rstan::extract(adults_fit)
 seedlings_estimates <- rstan::extract(seedlings_fit)
 
