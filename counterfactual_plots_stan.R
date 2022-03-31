@@ -414,9 +414,9 @@ seedlings2020_ashi <- expand.grid(
                               starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
                               seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
                          as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
-                            (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
-                               starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
-                               seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
 
 seedlings2020_asmean <- expand.grid(
   seeded_am2 = 150, # near the mean of seeded_am2
@@ -468,51 +468,50 @@ c<-ggplot(data=seedlings2020_ashi, aes(x = starting_pm2, y = estimate,  color=as
 
 
 # predict over seeded_a (hold sm2 and pm2 steady)
-
 seedlings2020_sphi <- expand.grid(
   seeded_am2 = seq(75,1800, length.out=100)
   ,starting_pm2 = 9,
   seeded_sm2 = 4200 
   ,warmtrt = c("amb","warm"))%>%
   mutate(estimate=ifelse(warmtrt=="amb", 
-                           as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
-                           as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
-  
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+
 seedlings2020_spmean <- expand.grid(
   seeded_am2 = seq(75,1800, length.out=100)
   ,starting_pm2 = 5,
   seeded_sm2 = 2400 
   ,warmtrt = c("amb","warm"))%>%
-    mutate(estimate=ifelse(warmtrt=="amb", 
-                           as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
-                           as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
-  
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+
 seedlings2020_splo <- expand.grid(
   seeded_am2 = seq(75,1800, length.out=100)
   ,starting_pm2 = 1 ,
   seeded_sm2 = 2200 
   ,warmtrt = c("amb","warm"))%>%
-    mutate(estimate=ifelse(warmtrt=="amb", 
-                           as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
-                           as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
-                             (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
-                                starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
-                                seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
 
 d<-ggplot(data=seedlings2020_splo, aes(x = seeded_am2, y = estimate,  color=as.factor(warmtrt))) + 
   geom_point()+
@@ -531,6 +530,262 @@ f<-ggplot(data=seedlings2020_sphi, aes(x = seeded_am2, y = estimate,  color=as.f
   theme_classic()+theme(legend.position="none")
 
 #still need to do holding perennials and annuals still and varying seedlings. 
+seedlings2020_aphi <- expand.grid(
+  seeded_am2 = 1800,
+  starting_pm2 = 9,
+  seeded_sm2 = seq(2270, 4200, length.out=100), 
+  warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+
+seedlings2020_apmean <- expand.grid(
+  seeded_am2 = 150
+  ,starting_pm2 = 5,
+  seeded_sm2 = seq(2270, 4200, length.out=100)
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+
+seedlings2020_aplo <- expand.grid(
+  seeded_am2 = 75
+  ,starting_pm2 = 1 ,
+  seeded_sm2 = seq(2270, 4200, length.out=100)
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[5, 3])),
+                         as.numeric(seedlings_estimates2020[8,3])/ # as.numeric(seedlings_estimates2020[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2020[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2020[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2020[6, 3]))))
+
+g<-ggplot(data=seedlings2020_aplo, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2020b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2020 w/p=1&s=2200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+h<-ggplot(data=seedlings2020_apmean, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2020b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2020 w/p=5&s=2800")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+i<-ggplot(data=seedlings2020_aphi, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2020b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2020 w/p=9&s=4200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
 
 #visualize conditional plots first with all data
-ggarrange(a, b, c, d, e, f, nrow=2, ncol=3, common.legend=T)
+ggarrange(a, b, c, d, e, f, g, h, i, nrow=3, ncol=3, common.legend=T)
+
+#2021 ----
+seedlings2021b<-mutate(seedlings2021, warmtrt=ifelse(warmtrt==0, "amb", "warm"))
+
+### predict over pm2 (hold seeded_a&seeded_s steady)
+seedlings2021_ashi <- expand.grid(
+  seeded_am2 = 1800, # near the max of seeded_am2
+  seeded_sm2 = 4200 # near the max of seeded_am2
+  ,starting_pm2 = as.numeric(seq(0,9, length.out=200))
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+seedlings2021_asmean <- expand.grid(
+  seeded_am2 = 150, # near the mean of seeded_am2
+  seeded_sm2 = 2800 # near the mean of seeded_sm2
+  ,starting_pm2 = as.numeric(seq(0,9, length.out=200))
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+
+seedlings2021_aslo <- expand.grid(
+  seeded_am2 = 75,  #above the min
+  seeded_sm2 = 2200
+  ,starting_pm2 = seq(0,9, length.out=200)
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+
+a<-ggplot(data=seedlings2021_aslo, aes(x = starting_pm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=starting_pm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/seeded_a=75&s=2200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+b<-ggplot(data=seedlings2021_asmean, aes(x = starting_pm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=starting_pm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/seeded_a=685&s=2800")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+c<-ggplot(data=seedlings2021_ashi, aes(x = starting_pm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=starting_pm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/seeded_a=1800&s=4200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+
+
+# predict over seeded_a (hold sm2 and pm2 steady)
+seedlings2021_sphi <- expand.grid(
+  seeded_am2 = seq(75,1800, length.out=100)
+  ,starting_pm2 = 9,
+  seeded_sm2 = 4200 
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+seedlings2021_spmean <- expand.grid(
+  seeded_am2 = seq(75,1800, length.out=100)
+  ,starting_pm2 = 5,
+  seeded_sm2 = 2400 
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+seedlings2021_splo <- expand.grid(
+  seeded_am2 = seq(75,1800, length.out=100)
+  ,starting_pm2 = 1 ,
+  seeded_sm2 = 2200 
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+d<-ggplot(data=seedlings2021_splo, aes(x = seeded_am2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_am2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=1&s=2200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+e<-ggplot(data=seedlings2021_spmean, aes(x = seeded_am2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_am2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=5&s=2800")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+f<-ggplot(data=seedlings2021_sphi, aes(x = seeded_am2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_am2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=9&s=4200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+
+#still need to do holding perennials and annuals still and varying seedlings. 
+seedlings2021_aphi <- expand.grid(
+  seeded_am2 = 1800,
+  starting_pm2 = 9,
+  seeded_sm2 = seq(2270, 4200, length.out=100), 
+  warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+seedlings2021_apmean <- expand.grid(
+  seeded_am2 = 150
+  ,starting_pm2 = 5,
+  seeded_sm2 = seq(2270, 4200, length.out=100)
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+seedlings2021_aplo <- expand.grid(
+  seeded_am2 = 75
+  ,starting_pm2 = 1 ,
+  seeded_sm2 = seq(2270, 4200, length.out=100)
+  ,warmtrt = c("amb","warm"))%>%
+  mutate(estimate=ifelse(warmtrt=="amb", 
+                         as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[1, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[3, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[5, 3])),
+                         as.numeric(seedlings_estimates2021[8,3])/ # as.numeric(seedlings_estimates2021[8,3])*seeded_sm2/
+                           (1+seeded_am2*as.numeric(seedlings_estimates2021[2, 3]) + 
+                              starting_pm2*as.numeric(seedlings_estimates2021[4, 3])+ 
+                              seeded_sm2*as.numeric(seedlings_estimates2021[6, 3]))))
+
+g<-ggplot(data=seedlings2021_aplo, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=1&s=2200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+h<-ggplot(data=seedlings2021_apmean, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=5&s=2800")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+i<-ggplot(data=seedlings2021_aphi, aes(x = seeded_sm2, y = estimate,  color=as.factor(warmtrt))) + 
+  geom_point()+
+  geom_jitter(data=seedlings2021b, aes(x=seeded_sm2, y=survivors/seeded_sm2), shape=1, width=.25)+
+  ylab("Seedling survival 2021 w/p=9&s=4200")+ scale_color_manual(values=c("blue", "red"))+
+  theme_classic()+theme(legend.position="none")
+
+#visualize conditional plots first with all data
+ggarrange(a, b, c, d, e, f, g, h, i, nrow=3, ncol=3, common.legend=T)
+
