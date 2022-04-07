@@ -200,7 +200,7 @@ ggarrange(a, b, c, d, e, f, nrow=2, ncol=3, common.legend=T)
 
 
 
-# perennial adults
+# perennials
 # adults ----
 #2020 ----
 adults2020b<-mutate(adults2020, warmtrt=ifelse(warmtrt==0, "amb", "warm"))
@@ -435,8 +435,8 @@ seedlings2020_asmean <- expand.grid(
 
 
 seedlings2020_aslo <- expand.grid(
-  seeded_am2 = 75,  #above the min
-  seeded_sm2 = 2200
+  seeded_am2 = 0,  #above the min
+  seeded_sm2 = 0
   ,starting_pm2 = seq(0,9, length.out=200)
   ,warmtrt = c("amb","warm"))%>%
   mutate(estimate=ifelse(warmtrt=="amb", 
@@ -501,7 +501,7 @@ seedlings2020_spmean <- expand.grid(
 seedlings2020_splo <- expand.grid(
   seeded_am2 = seq(75,1800, length.out=100)
   ,starting_pm2 = 1 ,
-  seeded_sm2 = 2200 
+  seeded_sm2 = 0 
   ,warmtrt = c("amb","warm"))%>%
   mutate(estimate=ifelse(warmtrt=="amb", 
                          as.numeric(seedlings_estimates2020[7,3])/ # as.numeric(seedlings_estimates2020[7,3])*seeded_sm2/
@@ -631,7 +631,7 @@ seedlings2021_asmean <- expand.grid(
 
 seedlings2021_aslo <- expand.grid(
   seeded_am2 = 75,  #above the min
-  seeded_sm2 = 2200
+  seeded_sm2 = 0
   ,starting_pm2 = seq(0,9, length.out=200)
   ,warmtrt = c("amb","warm"))%>%
   mutate(estimate=ifelse(warmtrt=="amb", 
@@ -696,7 +696,7 @@ seedlings2021_spmean <- expand.grid(
 seedlings2021_splo <- expand.grid(
   seeded_am2 = seq(75,1800, length.out=100)
   ,starting_pm2 = 1 ,
-  seeded_sm2 = 2200 
+  seeded_sm2 = 0 
   ,warmtrt = c("amb","warm"))%>%
   mutate(estimate=ifelse(warmtrt=="amb", 
                          as.numeric(seedlings_estimates2021[7,3])/ # as.numeric(seedlings_estimates2021[7,3])*seeded_sm2/
