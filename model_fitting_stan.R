@@ -115,27 +115,6 @@ annuals_estimates2021 <-as.data.frame(annuals_fit2021)%>%
   summarize(raw=mean(value), exp=mean(exp))
 
 
-## plot against data
-post<-as.data.frame(get_posterior_mean(annuals_fit2021))
-
-bev1 <- function(x, lam, alpha_a) {(lam / (1+alpha_a*x))} 
-bev1.exp <- function(x, lam, alpha) {exp(lam / (1+alpha*x))} 
-
-#against pm2
-ggplot(subset(annuals, time==2020))+
-  geom_jitter(data=filter(annuals, warmtrt == "amb"), aes(x=starting_pm2, y=percap), color="blue1", width=.5)+
- geom_function(fun=bev1, color='blue1', size=1.5, 
-               args=c("lam"=exp(post$`mean-chain:1`[1]), "alpha_a"=exp(post$`mean-chain:1`[5])),linetype='dashed') +
-  geom_jitter(data=filter(annuals, warmtrt == "warm"), aes(x=starting_pm2, y=percap), color="red1", width=.5) +
-  geom_function(fun=bev1, color='red1', size=1.5, 
-                args=c("lam"=exp(post$`mean-chain:1`[1]+post$`mean-chain:1`[2]), "alpha_a"=exp(post$`mean-chain:1`[5]+post$`mean-chain:1`[2])),linetype='dashed')# +
-  geom_function(fun=bev1.exp, color='blue1', size=1.5, 
-              args=c("lam"=(post$`mean-chain:1`[1]), "alpha"=(post$`mean-chain:1`[5])))+
-  geom_function(fun=bev1.exp, color='red1', size=1.5, 
-              args=c("lam"=(post$`mean-chain:1`[1]+post$`mean-chain:1`[2]), "alpha"=(post$`mean-chain:1`[5]+post$`mean-chain:1`[2])))
-
-
-
 
 #ADULT PERENNIALS ----
 
@@ -182,13 +161,6 @@ warmtrt <- adults2020$warmtrt
 starting_pm2 <- adults2020$starting_pm2
 seeded_am2 <- adults2020$seeded_am2
 
-#2021
-N <- length(adults2021$fecundity)
-fecundity <- adults2021$fecundity
-warmtrt <- adults2021$warmtrt
-starting_pm2 <- adults2021$starting_pm2
-seeded_am2 <- adults2021$seeded_am2
-
 adults_datavector <- c("N", "fecundity", "seeded_am2","starting_pm2", "warmtrt")
 
 initials <- list(lambdaP_amb=10, lambdaP_slope=-0.5, 
@@ -196,6 +168,21 @@ initials <- list(lambdaP_amb=10, lambdaP_slope=-0.5,
                  alphaPP_amb=-1, alphaPP_slope=0)
 
 initials1<- list(initials, initials, initials)
+
+adults_fit2020 <- stan(file="adults_model.stan", 
+                       data=adults_datavector,
+                       iter=3000,
+                       chains = 3,
+                       # thin = 1,
+                       control = list(adapt_delta = 0.9, max_treedepth = 10),
+                       init = initials1)
+
+#2021
+N <- length(adults2021$fecundity)
+fecundity <- adults2021$fecundity
+warmtrt <- adults2021$warmtrt
+starting_pm2 <- adults2021$starting_pm2
+seeded_am2 <- adults2021$seeded_am2
 
 adults_fit2021 <- stan(file="adults_model.stan", 
                     data=adults_datavector,
@@ -208,11 +195,11 @@ adults_fit2021 <- stan(file="adults_model.stan",
 traceplot(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
 traceplot(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
 
-pairs(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-pairs(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
+#pairs(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
+#pairs(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
 
 ### Save posterior distributions to file
-save(adults_fit, file = "adults_fit032122.rdata")
+#save(adults_fit, file = "adults_fit032122.rdata")
 #annuals_fit<-load("adults_fit032122.rdata")
 
 ## Look at resulting estimated parameter distributions
@@ -246,12 +233,14 @@ adults_estimates2021 <-as.data.frame(adults_fit2021)%>%
 seedlings2020<-filter(seedlings, time==2020)%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)
+  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
+  mutate(true_survival=survivors/seeded_sm2)
 
 seedlings2021<-filter(seedlings, time==2021)%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)
+  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
+  mutate(true_survival=survivors/seeded_sm2)
 
 #alternate modified
 seedlings2020<-filter(seedlings, time==2020)%>%
@@ -259,14 +248,16 @@ seedlings2020<-filter(seedlings, time==2020)%>%
   mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="annuals", 0, starting_pm2 ))%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)
+  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
+  mutate(true_survival=survivors/seeded_sm2)
 
 seedlings2021<-filter(seedlings, time==2021)%>%
   mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="adult perennials", 0, seeded_am2 ))%>%
   mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="annuals", 0, starting_pm2 ))%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)
+  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
+  mutate(true_survival=survivors/seeded_sm2)
 
 
 #what is a reasonable prior
@@ -288,6 +279,28 @@ warmtrt <- seedlings2020$warmtrt
 starting_pm2 <- seedlings2020$starting_pm2
 seeded_am2 <- seedlings2020$seeded_am2
 seeded_sm2 <- seedlings2020$seeded_sm2
+true_survival <- seedlings2020$true_survival
+
+
+seedlings_datavector <- c("N", "survivors", "seeded_am2","seeded_sm2", "starting_pm2", "warmtrt", "true_survival")
+
+initials <- list(lambdaS_amb=7, lambdaS_slope=0, 
+                 alphaSA_amb=-1, alphaSA_slope=0, 
+                 alphaSS_amb=-1, alphaSS_slope=0,
+                 alphaSP_amb=-1, alphaSP_slope=0,
+                 sigma=1)
+
+initials1<- list(initials, initials, initials)
+
+seedlings_fit2020 <- stan(file="seedlings_model.stan", 
+                          data=seedlings_datavector,
+                          iter=3000,
+                          chains = 3,
+                          # thin = 1,
+                          control = list(adapt_delta = 0.9, max_treedepth = 10),
+                          init = initials1)
+
+
 #2021
 N <- length(seedlings2021$survivors)
 survivors <- seedlings2021$survivors
@@ -295,15 +308,8 @@ warmtrt <- seedlings2021$warmtrt
 starting_pm2 <- seedlings2021$starting_pm2
 seeded_am2 <- seedlings2021$seeded_am2
 seeded_sm2 <- seedlings2021$seeded_sm2
+true_survival <- seedlings2021$true_survival
 
-seedlings_datavector <- c("N", "survivors", "seeded_am2","seeded_sm2", "starting_pm2", "warmtrt")
-
-initials <- list(lambdaS_amb=7, lambdaS_slope=0, 
-                 alphaSA_amb=-1, alphaSA_slope=0, 
-                 alphaSS_amb=-1, alphaSS_slope=0,
-                 alphaSP_amb=-1, alphaSP_slope=0)
-
-initials1<- list(initials, initials, initials)
 
 seedlings_fit2021 <- stan(file="seedlings_model.stan", 
                    data=seedlings_datavector,
@@ -313,12 +319,14 @@ seedlings_fit2021 <- stan(file="seedlings_model.stan",
                    control = list(adapt_delta = 0.9, max_treedepth = 10),
                    init = initials1)
 
-traceplot(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-pairs(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
+traceplot(seedlings_fit2021, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
+traceplot(seedlings_fit2020, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
+
+#pairs(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
 # pairs(no_dist_seeds_brho_hi_hi, pars = c('lambda_int', 'lambda_slope')
 
 ### Save posterior distributions to file
-save(seedlings_fit, file = "seedlings_fit032122.rdata")
+#save(seedlings_fit, file = "seedlings_fit032122.rdata")
 #annuals_fit<-load("adults_fit032122.rdata")
 
 ## Look at resulting estimated parameter distributions
@@ -331,11 +339,11 @@ seedlings_estimates2020 <-as.data.frame(seedlings_fit2020)%>%
          alphaSP_warm=alphaSP_amb+alphaSP_slope,
          alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
   select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)%>%
-  gather(param, value, 1:9)%>%
+  gather(param, value, 1:10)%>%
   mutate(exp=exp(value))%>%
   group_by(param)%>%
   summarize(raw=mean(value), exp=mean(exp))%>%
-  filter(param!="lp__")
+  filter(param!="lp__"&param!="sigma")
 
 seedlings_estimates2021 <-as.data.frame(seedlings_fit2021)%>%
   mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
@@ -343,14 +351,93 @@ seedlings_estimates2021 <-as.data.frame(seedlings_fit2021)%>%
          alphaSP_warm=alphaSP_amb+alphaSP_slope,
          alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
   select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)%>%
-  gather(param, value, 1:9)%>%
+  gather(param, value, 1:10)%>%
   mutate(exp=exp(value))%>%
   group_by(param)%>%
   summarize(raw=mean(value), exp=mean(exp))%>%
-  filter(param!="lp__")
+  filter(param!="lp__"&param!="sigma")
 
-## Extract all parameter estimates
-annuals_estimates <- rstan::extract(annuals_fit2020)
-adults_estimates <- rstan::extract(adults_fit)
-seedlings_estimates <- rstan::extract(seedlings_fit)
+
+
+
+### version with no seedling competition
+#2020
+N <- length(seedlings2020$survivors)
+survivors <- seedlings2020$survivors
+warmtrt <- seedlings2020$warmtrt
+starting_pm2 <- seedlings2020$starting_pm2
+seeded_am2 <- seedlings2020$seeded_am2
+true_survival <- seedlings2020$true_survival
+
+
+seedlings_datavector <- c("N", "survivors", "seeded_am2", "starting_pm2", "warmtrt", "true_survival")
+
+initials <- list(lambdaS_amb=7, lambdaS_slope=0, 
+                 alphaSA_amb=-1, alphaSA_slope=0, 
+                 alphaSP_amb=-1, alphaSP_slope=0,
+                 sigma=1)
+
+initials1<- list(initials, initials, initials)
+
+seedlings_fit2020s <- stan(file="seedlings_model_simple.stan", 
+                          data=seedlings_datavector,
+                          iter=3000,
+                          chains = 3,
+                          # thin = 1,
+                          control = list(adapt_delta = 0.9, max_treedepth = 10),
+                          init = initials1)
+
+
+#2021
+N <- length(seedlings2021$survivors)
+survivors <- seedlings2021$survivors
+warmtrt <- seedlings2021$warmtrt
+starting_pm2 <- seedlings2021$starting_pm2
+seeded_am2 <- seedlings2021$seeded_am2
+true_survival <- seedlings2021$true_survival
+
+
+seedlings_fit2021s <- stan(file="seedlings_model_simple.stan", 
+                          data=seedlings_datavector,
+                          iter=3000,
+                          chains = 3,
+                          # thin = 1,
+                          control = list(adapt_delta = 0.9, max_treedepth = 10),
+                          init = initials1)
+
+traceplot(seedlings_fit2021s, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope"))
+traceplot(seedlings_fit2020s, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope"))
+
+#pairs(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
+# pairs(no_dist_seeds_brho_hi_hi, pars = c('lambda_int', 'lambda_slope')
+
+### Save posterior distributions to file
+#save(seedlings_fit, file = "seedlings_fit032122.rdata")
+#annuals_fit<-load("adults_fit032122.rdata")
+
+## Look at resulting estimated parameter distributions
+stan_dens(seedlings_fit2020, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope"))
+stan_dens(seedlings_fit2021, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope"))
+
+seedlings_estimates2020s <-as.data.frame(seedlings_fit2020s)%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope)%>%
+  gather(param, value, 1:8)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))%>%
+  filter(param!="lp__"&param!="sigma")
+
+seedlings_estimates2021s <-as.data.frame(seedlings_fit2021s)%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope)%>%
+  gather(param, value, 1:8)%>%
+  mutate(exp=exp(value))%>%
+  group_by(param)%>%
+  summarize(raw=mean(value), exp=mean(exp))%>%
+  filter(param!="lp__"&param!="sigma")
 
