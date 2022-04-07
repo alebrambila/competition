@@ -6,8 +6,8 @@
 // warwmtrt, whether a plot was warmed or ambient
 // time, whether data is from 2020 or 2021
 data {
-  int<lower = 1> N;
-  int<lower=0> survivors[N]; 
+  int<lower=1> N;
+  real<lower=0> true_survival[N]; 
   vector[N] seeded_am2;
   vector[N] seeded_sm2;
   vector[N] starting_pm2;
@@ -32,6 +32,7 @@ parameters {
   real alphaSP_slope;
   real alphaSS_amb;
   real alphaSS_slope;
+  real<lower=0> sigma;
 //  real<lower=0> sigma; sigma has to do with random effects
 // if we want to do separately for each treatment/year do like above with <lower=0>
 }
@@ -41,7 +42,7 @@ parameters {
 // and standard deviation 'sigma'.
 model {
   // intermediate objects
-  vector[N] survivors_hat; 
+  real survivors_hat[N]; 
   vector[N] survivalS_e; //for each data point, what is data for relevant environment
   vector[N] alphaSA_e;
   vector[N] alphaSP_e;
@@ -57,16 +58,17 @@ model {
   alphaSP_slope ~ normal(0, 1);  
   alphaSS_amb ~ normal(-2, 1);
   alphaSS_slope ~ normal(0, 1);  
+  sigma ~ exponential(1);
   
   // define the model
   for(i in 1:N){
     survivalS_e[i] = exp(survivalS_amb + survivalS_slope * warmtrt[i]);
     alphaSA_e[i] = exp(alphaSA_amb + alphaSA_slope * warmtrt[i]);
     alphaSP_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
-    alphaSS_e[i] = exp(alphaSP_amb + alphaSP_slope * warmtrt[i]);
-    survivors_hat[i] = survivalS_e[i] * seeded_sm2[i] / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
+    alphaSS_e[i] = exp(alphaSS_amb + alphaSS_slope * warmtrt[i]);
+    survivors_hat[i] = survivalS_e[i] / (1 + alphaSA_e[i] * seeded_am2[i] + alphaSP_e[i] * starting_pm2[i] + alphaSS_e[i] * seeded_sm2[i]);
   }
-  survivors ~ poisson(survivors_hat);
+  true_survival ~ normal(survivors_hat, sigma);
 }
 
 
