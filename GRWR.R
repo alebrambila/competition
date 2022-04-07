@@ -1,37 +1,75 @@
 
 # ------------------------------------------------------------------------------------
-#means
-fitsum.annuals
-fitsum.seedling
-fitsum.adult
+# mean parameters ----
 
-lambdaAam<-  fitsum.annuals$value[5] #previously 1.30
-lambdaAwm<- fitsum.annuals$value[6] #previously 1.54 
-lambdaSam<- fitsum.seedling$value[7] # .019
-lambdaSwm<- fitsum.seedling$value[8] # .019
-lambdaPam<- fitsum.adult$value[5] #1.46
-lambdaPwm<- fitsum.adult$value[6] #1.73
-  
-alphaAAam<- fitsum.annuals$value[1] #.12
-alphaAAwm<- fitsum.annuals$value[2] # 28
-#alphaASa<- .08#annual.amb[] #not in this model anymore
-#alphaASw<- .05#annual.warm[] #not in this model anymore
-alphaAPam<- fitsum.annuals$value[3] #.10
-alphaAPwm<- fitsum.annuals$value[4] #.10
-  
-alphaPAam<- fitsum.adult$value[1] #.0012
-alphaPAwm<-  fitsum.adult$value[2] #.0022
-alphaPPam<-  fitsum.adult$value[3]# .0 
-alphaPPwm<- fitsum.adult$value[4] # .17
-  
-alphaSAam<- fitsum.seedling$value[1] #.032
-alphaSAwm<- fitsum.seedling$value[2] #.011
-alphaSSam<- fitsum.seedling$value[5] # .0042
-alphaSSwm<- fitsum.seedling$value[6] #.0012
-alphaSPam<- fitsum.seedling$value[3] #.097
-alphaSPwm<- fitsum.seedling$value[4] # .094
+#fitsum.annuals
+#fitsum.seedling
+#fitsum.adult
 
-#all of them (posterior predictive plots)
+#2020
+lambdaAam20<-  annuals_estimates2020$exp[5]
+lambdaAwm20<- annuals_estimates2020$exp[6]
+survivalSam20<- seedlings_estimates2020$exp[7]
+survivalSwm20<- seedlings_estimates2020$exp[8]
+lambdaPam20<- adults_estimates2020$exp[5]
+lambdaPwm20<- adults_estimates2020$exp[6] 
+  
+alphaAAam20<- annuals_estimates2020$exp[1]
+alphaAAwm20<- annuals_estimates2020$exp[2]
+alphaAPam20<- annuals_estimates2020$exp[3]
+alphaAPwm20<- annuals_estimates2020$exp[4] 
+  
+alphaPAam20<- adults_estimates2020$exp[1]
+alphaPAwm20<-  adults_estimates2020$exp[2]
+alphaPPam20<-  adults_estimates2020$exp[3]
+alphaPPwm20<- adults_estimates2020$exp[4]
+  
+alphaSAam20<- seedlings_estimates2020$exp[1]
+alphaSAwm20<- seedlings_estimates2020$exp[2]
+alphaSSam20<- seedlings_estimates2020$exp[5]
+alphaSSwm20<- seedlings_estimates2020$exp[6]
+alphaSPam20<- seedlings_estimates2020$exp[3]
+alphaSPwm20<- seedlings_estimates2020$exp[4]
+
+#2021
+lambdaAam21<-  annuals_estimates2021$exp[5]
+lambdaAwm21<- annuals_estimates2021$exp[6]
+survivalSam21<- seedlings_estimates2021$exp[7]
+survivalSwm21<- seedlings_estimates2021$exp[8]
+lambdaPam21<- adults_estimates2021$exp[5]
+lambdaPwm21<- adults_estimates2021$exp[6] 
+
+alphaAAam21<- annuals_estimates2021$exp[1]
+alphaAAwm21<- annuals_estimates2021$exp[2]
+alphaAPam21<- annuals_estimates2021$exp[3]
+alphaAPwm21<- annuals_estimates2021$exp[4] 
+
+alphaPAam21<- adults_estimates2021$exp[1]
+alphaPAwm21<-  adults_estimates2021$exp[2]
+alphaPPam21<-  adults_estimates2021$exp[3]
+alphaPPwm21<- adults_estimates2021$exp[4]
+
+alphaSAam21<- seedlings_estimates2021$exp[1]
+alphaSAwm21<- seedlings_estimates2021$exp[2]
+alphaSSam21<- seedlings_estimates2021$exp[5]
+alphaSSwm21<- seedlings_estimates2021$exp[6]
+alphaSPam21<- seedlings_estimates2021$exp[3]
+alphaSPwm21<- seedlings_estimates2021$exp[4]
+
+#all chains (posterior predictive plots) ----
+#annuals_fit2020, adults_fit2020, seedlings_fit2020
+
+#2020
+lambdaAam20<-  head(rstan::extract(annuals_fit2020)$lambdaA_amb)
+dimnames(as.array(annuals_fit2020)$lambdaA_amb)
+as.array(annuals_fit2020)[[lambdaA_amb]]
+
+lambdaAwm20<- annuals_estimates2020$exp[6]
+survivalSam20<- seedlings_estimates2020$exp[7]
+survivalSwm20<- seedlings_estimates2020$exp[8]
+lambdaPam20<- adults_estimates2020$exp[5]
+lambdaPwm20<- adults_estimates2020$exp[6] 
+
 allfits.annuals1<-allfits.annuals%>%
   filter(.iteration>1000)%>%
   mutate(id=paste(.chain, .iteration, sep="_"))%>%
@@ -71,7 +109,7 @@ alphaSPw<- subset(allfits.seedling1, param=="alphaSP"&treatment=="warmed")
 
 # ------------------------------------------------------------------------------------
 ## Set germination and survival fractions from the literature
-sa <-0# .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
+sa <-.11# .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
 ga <- .89 #ghersa 1984
 ga <- 100 #gundel 2007, gundel 2006
 ga <- .97 #lin 2018
@@ -91,7 +129,7 @@ gs <- .50 # mackin 2021
 
 # Determine equilibrium conditions for lolium seeds - to run for only a single timestep
 annual.equilibrium <- function (N0a, sa, ga, alphaAA, lambdaA) { #number of annuals, seed survival annuals, germination annuals, self alpha, annual lambda
-  Na <- sa*(1-ga)*N0a + N0a*lambdaA*100/(1+alphaAA*N0a) #predicted lambda is scaled, match scaling here 100, 30??
+  Na <- sa*(1-ga)*N0a + N0a*lambdaA/(1+alphaAA*N0a) #predicted lambda is scaled, match scaling here 100, 30??
   return(Na)
 }
 
@@ -103,7 +141,7 @@ adult.equilibrium <- function (N0p, N0s, sp, alphaSS, alphaSP, lambdaS) { # n ad
 
 # Determine equilibrium conditions for festuca seeds
 seedling.equilibrium <- function (N0p, N0s, ss, gs, alphaPP, lambdaP) { # n adult n seedling, seedling survival, germination seedling, self and adult alphas, adult seed production
-  Ns <- ss*(1-gs)*N0s + N0p*(lambdaP*5000)/(1 + alphaPP*N0p)
+  Ns <- ss*(1-gs)*N0s + N0p*(lambdaP)/(1 + alphaPP*N0p)
   return(Ns)
 }
 
@@ -111,13 +149,13 @@ seedling.equilibrium <- function (N0p, N0s, ss, gs, alphaPP, lambdaP) { # n adul
 #competition growth:
 # annuals
 annual.invade <- function  (N0a, N0p, N0s, sa, ga, alphaAA, alphaAP, lambdaA){
-  Na <- sa*(1-ga)*N0a + N0a*lambdaA*100/(1+alphaAP*N0p+alphaAA*N0a)
+  Na <- sa*(1-ga)*N0a + N0a*lambdaA/(1+alphaAP*N0p+alphaAA*N0a)
   return(Na)
 }
 
 # seedlings
 seedling.resident <- function (N0p, N0a, N0s, ss, gs, alphaPP, alphaPA, lambdaP) {
-  Ns <- ss*(1-gs)*N0s + N0p*(lambdaP*5000)/(1 + alphaPP*N0p+ alphaPA*N0a)  
+  Ns <- ss*(1-gs)*N0s + N0p*(lambdaP)/(1 + alphaPP*N0p+ alphaPA*N0a)  
   return(Ns)
 }
 
@@ -133,23 +171,40 @@ adult.resident <- function (N0p, N0s, N0a, sp, alphaSS, alphaSP, alphaSA,lambdaS
 time <- 1:300
 tmax=max(time)
 
-# annuals
+# annuals, mean parameters
 a <- rep(0, length(time))
 
 N0a=1
-eq.annuals.a <- tibble(time, a)
-eq.annuals.a[1,2] = as.numeric(N0a)
 
+#2020 ambient
+eq.annuals.a20 <- tibble(time, a)
+eq.annuals.a20[1,2] = as.numeric(N0a)
 
 for (t in 1:tmax) {
-  eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAam, lambdaAam)
+  eq.annuals.a20[t+1,2] <- annual.equilibrium(eq.annuals.a20[t,2], sa, ga, alphaAAam20, lambdaAam20)
+}
+#2021 ambient
+eq.annuals.a21 <- tibble(time, a)
+eq.annuals.a21[1,2] = as.numeric(N0a)
+
+for (t in 1:tmax) {
+  eq.annuals.a21[t+1,2] <- annual.equilibrium(eq.annuals.a21[t,2], sa, ga, alphaAAam21, lambdaAam21)
 }
 
-eq.annuals.w<- tibble(time, a)
-eq.annuals.w[1,2] <- N0a
+#2020 warmed
+eq.annuals.w20<- tibble(time, a)
+eq.annuals.w20[1,2] <- N0a
 
 for (t in 1:tmax) {
-  eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAwm, lambdaAwm)
+  eq.annuals.w20[t+1,2] <- annual.equilibrium(eq.annuals.w20[t,2], sa, ga, alphaAAwm20, lambdaAwm20)
+}
+
+#2021 warmed
+eq.annuals.w21<- tibble(time, a)
+eq.annuals.w21[1,2] <- N0a
+
+for (t in 1:tmax) {
+  eq.annuals.w21[t+1,2] <- annual.equilibrium(eq.annuals.w21[t,2], sa, ga, alphaAAwm21, lambdaAwm21)
 }
 
 
@@ -160,37 +215,56 @@ N0p=1
 s <- rep(0, length(time))
 p <- rep(0, length(time))
 
-#amb
-eq.perennials.a<-tibble(time, p, s)
-eq.perennials.a[1,3] <- N0s
-eq.perennials.a[1,2] <- N0p
+#2020 amb
+eq.perennials.a20<-tibble(time, p, s)
+eq.perennials.a20[1,3] <- N0s
+eq.perennials.a20[1,2] <- N0p
 
 for (t in 1:300) {
-  eq.perennials.a[t+1, 2] <- adult.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], sp, alphaSSam, alphaSPam, lambdaSam)
-  eq.perennials.a[t+1, 3] <- seedling.equilibrium(eq.perennials.a[t, 2], eq.perennials.a[t, 3], ss, gs, alphaPPam, lambdaPam)
+  eq.perennials.a20[t+1, 2] <- adult.equilibrium(eq.perennials.a20[t, 2], eq.perennials.a20[t, 3], sp, alphaSSam20, alphaSPam20, survivalSam20)
+  eq.perennials.a20[t+1, 3] <- seedling.equilibrium(eq.perennials.a20[t, 2], eq.perennials.a20[t, 3], ss, gs, alphaPPam20, lambdaPam20)
+}
+
+#2021 amb
+eq.perennials.a21<-tibble(time, p, s)
+eq.perennials.a21[1,3] <- N0s
+eq.perennials.a21[1,2] <- N0p
+
+for (t in 1:300) {
+  eq.perennials.a21[t+1, 2] <- adult.equilibrium(eq.perennials.a21[t, 2], eq.perennials.a21[t, 3], sp, alphaSSam21, alphaSPam21, survivalSam21)
+  eq.perennials.a21[t+1, 3] <- seedling.equilibrium(eq.perennials.a21[t, 2], eq.perennials.a21[t, 3], ss, gs, alphaPPam21, lambdaPam21)
 }
 
 
-#warm
-eq.perennials.w<-tibble(time, p, s)
-eq.perennials.w[1,3] <- N0s
-eq.perennials.w[1,2] <- N0p
+#2020 warm
+eq.perennials.w20<-tibble(time, p, s)
+eq.perennials.w20[1,3] <- N0s
+eq.perennials.w20[1,2] <- N0p
 
 for (t in 1:300) {
-  eq.perennials.w[t+1, 2] <- adult.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], sp, alphaSSwm, alphaSPam, lambdaSwm)
-  eq.perennials.w[t+1, 3] <- seedling.equilibrium(eq.perennials.w[t, 2], eq.perennials.w[t, 3], ss, gs, alphaPPwm, lambdaPwm)
+  eq.perennials.w20[t+1, 2] <- adult.equilibrium(eq.perennials.w20[t, 2], eq.perennials.w20[t, 3], sp, alphaSSwm20, alphaSPam20, survivalSwm20)
+  eq.perennials.w20[t+1, 3] <- seedling.equilibrium(eq.perennials.w20[t, 2], eq.perennials.w20[t, 3], ss, gs, alphaPPwm20, lambdaPwm20)
 }
 
+#2021 warm
+eq.perennials.w21<-tibble(time, p, s)
+eq.perennials.w21[1,3] <- N0s
+eq.perennials.w21[1,2] <- N0p
+
+for (t in 1:300) {
+  eq.perennials.w21[t+1, 2] <- adult.equilibrium(eq.perennials.w21[t, 2], eq.perennials.w21[t, 3], sp, alphaSSwm21, alphaSPam21, survivalSwm21)
+  eq.perennials.w21[t+1, 3] <- seedling.equilibrium(eq.perennials.w21[t, 2], eq.perennials.w21[t, 3], ss, gs, alphaPPwm21, lambdaPwm21)
+}
 
 
 # check outputs
-annual.eq<-rbind(mutate(eq.annuals.a, temp="amb"), mutate(eq.annuals.w, temp="warm"))
-perennial.eq<-rbind(mutate(eq.perennials.a, temp="amb"), mutate(eq.perennials.w, temp="warm"))%>%
+annual.eq<-rbind(mutate(eq.annuals.a20, temp="amb", year=20), mutate(eq.annuals.w20, temp="warm", year=20), mutate(eq.annuals.a21, temp="amb", year=21), mutate(eq.annuals.w21, temp="warm", year=21))
+perennial.eq<-rbind(mutate(eq.perennials.a20, temp="amb", year=20), mutate(eq.perennials.w20, temp="warm", year=20), mutate(eq.perennials.a21, temp="amb", year=21), mutate(eq.perennials.w21, temp="warm", year=21))%>%
   gather("type", "density", p, s)%>%
   mutate(type=ifelse(type=="p", "adult", "seedling"))
 
-eqp1<-ggplot(annual.eq, aes(time, a, color=temp))+ geom_line()+ylab("annual seed density")+  scale_colour_manual(values = c("dodgerblue", "darkred"))
-eqp2<-ggplot(perennial.eq, aes(time, (density), color=temp, linetype=type, shape=type))+ geom_line()+ylab("perennial density")+scale_y_continuous(trans='log10', labels = scales::comma)+  scale_colour_manual(values = c("dodgerblue", "darkred"))
+eqp1<-ggplot(annual.eq, aes(time, a, color=temp))+ geom_line()+ylab("annual seed density")+  scale_colour_manual(values = c("dodgerblue", "darkred")) +facet_wrap(~year)
+eqp2<-ggplot(perennial.eq, aes(time, (density), color=temp, linetype=as.factor(type) ))+ geom_line()+ylab("perennial density")+scale_y_continuous(trans='log10', labels = scales::comma)+  scale_colour_manual(values = c("dodgerblue", "darkred"))+facet_wrap(~year)
 
 ggarrange(eqp1, eqp2)
 
