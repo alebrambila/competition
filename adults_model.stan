@@ -45,11 +45,11 @@ model {
   vector[N] alphaPP_e;
 
   // set priors
-  lambdaP_amb ~ normal(9, 1);
+  lambdaP_amb ~ normal(7, 1);
   lambdaP_slope ~ normal(0, 1);
   alphaPA_amb ~ normal(-2, 1);
   alphaPA_slope ~ normal(0, 1);
-  alphaPP_amb ~ normal(-2, 1);
+  alphaPP_amb ~ normal(-1, 1);
   alphaPP_slope ~ normal(0, 1);  
   
   // define the model
