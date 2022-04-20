@@ -1,10 +1,4 @@
-
-# ------------------------------------------------------------------------------------
 # mean parameters ----
-
-#fitsum.annuals
-#fitsum.seedling
-#fitsum.adult
 
 #2020
 lambdaAam20<-  annuals_estimates2020$exp[5]
@@ -12,9 +6,8 @@ lambdaAwm20<- annuals_estimates2020$exp[6]
 
 alphaAAam20<- annuals_estimates2020$exp[1]
 alphaAAwm20<- annuals_estimates2020$exp[2]
-alphaAPam20<- annuals_estimates2020$exp[3] 
+alphaAPam20<- annuals_estimates2020$exp[3]
 alphaAPwm20<- annuals_estimates2020$exp[4]
-  
 
 lambdaPam20<- adults_estimates2020$exp[5]
 lambdaPwm20<- adults_estimates2020$exp[6]
@@ -31,14 +24,6 @@ alphaSSam20<- seedlings_estimates2020$exp[5]
 alphaSSwm20<- seedlings_estimates2020$exp[6]
 alphaSPam20<- seedlings_estimates2020$exp[3]
 alphaSPwm20<- seedlings_estimates2020$exp[4]
-
-#w/o seedling comp
-#survivalSam20<- seedlings_estimates2020$exp[7]
-#survivalSwm20<- seedlings_estimates2020$exp[8]
-#alphaSAam20<- seedlings_estimates2020$exp[1]
-#alphaSAwm20<- seedlings_estimates2020$exp[2]
-#alphaSPam20<- seedlings_estimates2020$exp[3]
-#alphaSPwm20<- seedlings_estimates2020$exp[4]
 
 #2021
 lambdaAam21<-  annuals_estimates2021$exp[5]
@@ -65,215 +50,21 @@ alphaSSwm21<- seedlings_estimates2021$exp[6]
 alphaSPam21<- seedlings_estimates2021$exp[3]
 alphaSPwm21<- seedlings_estimates2021$exp[4]
 
-#w/o seedling comp
-#survivalSam21<- seedlings_estimates2021$exp[7]
-#survivalSwm21<- seedlings_estimates2021$exp[8]
-#alphaSAam21<- seedlings_estimates2021$exp[1]
-#alphaSAwm21<- seedlings_estimates2021$exp[2]
-#alphaSPam21<- seedlings_estimates2021$exp[3]
-#alphaSPwm21<- seedlings_estimates2021$exp[4]
-
-#all chains (posterior predictive plots) ----
-
-#2020
-#annuals
-iterations_a20<-(as.data.frame(rstan::extract(annuals_fit2020)))%>%
-  mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
-         alphaAA_warm=alphaAA_amb+alphaAA_slope,
-         alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
-  select(-lambdaA_slope, -alphaAA_slope, -alphaAP_slope)
-iterations_a20<-rowid_to_column(iterations_a20)%>%
-  gather(param, value, 2:8)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-#adults
-iterations_p20<-(as.data.frame(rstan::extract(adults_fit2020)))%>%
-  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
-         alphaPA_warm=alphaPA_amb+alphaPA_slope,
-         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
-  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)
-iterations_p20<-rowid_to_column(iterations_p20)%>%
-  gather(param, value, 2:8)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-#seedlings
-iterations_s20<-(as.data.frame(rstan::extract(seedlings_fit2020)))%>%
-  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
-        alphaSA_warm=alphaSA_amb+alphaSA_slope,
-        alphaSP_warm=alphaSP_amb+alphaSP_slope,
-        alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
-  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)
-iterations_s20<-rowid_to_column(iterations_s20)%>%
-  gather(param, value, 2:9)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-#2021
-
-#annuals
-iterations_a21<-(as.data.frame(rstan::extract(annuals_fit2021)))%>%
-  mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
-         alphaAA_warm=alphaAA_amb+alphaAA_slope,
-         alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
-  select(-lambdaA_slope, -alphaAA_slope, -alphaAP_slope)
-iterations_a21<-rowid_to_column(iterations_a21)%>%
-  gather(param, value, 2:8)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-#adults
-iterations_p21<-(as.data.frame(rstan::extract(adults_fit2021)))%>%
-  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
-         alphaPA_warm=alphaPA_amb+alphaPA_slope,
-         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
-  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)
-iterations_p21<-rowid_to_column(iterations_p21)%>%
-  gather(param, value, 2:8)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-#seedlings
-iterations_s21<-(as.data.frame(rstan::extract(seedlings_fit2021)))%>%
-  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
-         alphaSA_warm=alphaSA_amb+alphaSA_slope,
-         alphaSP_warm=alphaSP_amb+alphaSP_slope,
-         alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
-  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)
-iterations_s21<-rowid_to_column(iterations_s21)%>%
-  gather(param, value, 2:9)%>%
-  mutate(exp=exp(value))%>%
-  select(-value)%>%
-  spread(param, exp)
-
-
-year1<-cbind(subset(iterations_a20, rowid<1001), subset(iterations_p20, rowid<1001), subset(iterations_s20, rowid<1001))%>%
-  select(-8, -9, -16, -17, -24)%>%
-  gather("param", "value", 2:21)%>%
-  mutate(warmtrt=ifelse(grepl("warm", param), "warmed", "ambient"))%>%
-  mutate(stage=ifelse(grepl("AA", param), "annual", NA))%>%
-  mutate(stage=ifelse(grepl("AP", param), "annual", stage))%>%
-  mutate(stage=ifelse(grepl("lambdaA", param), "annual", stage))%>%
-  mutate(stage=ifelse(grepl("PA", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("PP", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("lambdaP", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("SA", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("SP", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("survivalS", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("SS", param), "seedling", stage))%>%
-  mutate(type=ifelse(grepl("alpha", param), "alpha", "lambda"))%>%
-  mutate(type=ifelse(grepl("AA", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("SS", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("PP", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("AP", param), "adult_alpha", type))%>%
-  mutate(type=ifelse(grepl("SP", param), "adult_alpha", type))%>%
-  mutate(type=ifelse(grepl("SA", param), "annual_alpha", type))%>%
-  mutate(type=ifelse(grepl("PA", param), "annual_alpha", type))%>%
-  mutate(year=2020)
-
-year2<-cbind(subset(iterations_a21, rowid<1001), subset(iterations_p21, rowid<1001), subset(iterations_s21, rowid<1001))%>%
-  select(-8, -9, -16, -17, -24)%>%
-  gather("param", "value", 2:21)%>%
-  mutate(warmtrt=ifelse(grepl("warm", param), "warmed", "ambient"))%>%
-  mutate(stage=ifelse(grepl("AA", param), "annual", NA))%>%
-  mutate(stage=ifelse(grepl("AP", param), "annual", stage))%>%
-  mutate(stage=ifelse(grepl("lambdaA", param), "annual", stage))%>%
-  mutate(stage=ifelse(grepl("PA", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("PP", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("lambdaP", param), "adult", stage))%>%
-  mutate(stage=ifelse(grepl("SA", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("SP", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("survivalS", param), "seedling", stage))%>%
-  mutate(stage=ifelse(grepl("SS", param), "seedling", stage))%>%
-  mutate(type=ifelse(grepl("alpha", param), "alpha", "lambda"))%>%
-  mutate(type=ifelse(grepl("AA", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("SS", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("PP", param), "self_alpha", type))%>%
-  mutate(type=ifelse(grepl("AP", param), "adult_alpha", type))%>%
-  mutate(type=ifelse(grepl("SP", param), "adult_alpha", type))%>%
-  mutate(type=ifelse(grepl("SA", param), "annual_alpha", type))%>%
-  mutate(type=ifelse(grepl("PA", param), "annual_alpha", type))%>%
-  mutate(year=2021)
-
-alliter<-rbind(year1, year2)
-  
-
-ggplot(subset(alliter, stage=="annual"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
-ggplot(subset(alliter, stage=="adult"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
-ggplot(subset(alliter, stage=="seedling"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
-
-
-lambdaAa20<-  iterations_a20$lambdaA_amb
-lambdaAw20<- iterations_a20$lambdaA_warm
-survivalSa20<- iterations_s20$survivalS_amb
-survivalSw20<- iterations_s20$survivalS_warm
-lambdaPa20<- iterations_p20$lambdaP_amb
-lambdaPw20<- iterations_p20$lambdaP_warm
-
-alphaAAa20<- iterations_a20$alphaAA_amb
-alphaAAw20<- iterations_a20$alphaAA_warm
-alphaAPa20<- iterations_a20$alphaAP_amb
-alphaAPw20<- iterations_a20$alphaAP_warm
-
-alphaPAa20<- iterations_p20$alphaPA_amb
-alphaPAw20<-  iterations_p20$alphaPA_warm
-alphaPPa20<- iterations_p20$alphaPP_amb
-alphaPPw20<- iterations_p20$alphaPP_warm
-
-alphaSAa20<- iterations_s20$alphaSA_amb
-alphaSAw20<- iterations_s20$alphaSA_warm
-alphaSSa20<- iterations_s20$alphaSS_amb
-alphaSSw20<- iterations_s20$alphaSS_warm
-alphaSPa20<- iterations_s20$alphaSP_amb
-alphaSPw20<- iterations_s20$alphaSP_warm
-
-
-
-lambdaAa21<-  iterations_a21$lambdaA_amb
-lambdaAw21<- iterations_a21$lambdaA_warm
-survivalSa21<- iterations_s21$survivalS_amb
-survivalSw21<- iterations_s21$survivalS_warm
-lambdaPa21<- iterations_p21$lambdaP_amb
-lambdaPw21<- iterations_p21$lambdaP_warm
-
-alphaAAa21<- iterations_a21$alphaAA_amb
-alphaAAw21<- iterations_a21$alphaAA_warm
-alphaAPa21<- iterations_a21$alphaAP_amb
-alphaAPw21<- iterations_a21$alphaAP_warm
-
-alphaPAa21<- iterations_p21$alphaPA_amb
-alphaPAw21<-  iterations_p21$alphaPA_warm
-alphaPPa21<- iterations_p21$alphaPP_amb
-alphaPPw21<- iterations_p21$alphaPP_warm
-
-alphaSAa21<- iterations_s21$alphaSA_amb
-alphaSAw21<- iterations_s21$alphaSA_warm
-alphaSSa21<- iterations_s21$alphaSS_amb
-alphaSSw21<- iterations_s21$alphaSS_warm
-alphaSPa21<- iterations_s21$alphaSP_amb
-alphaSPw21<- iterations_s21$alphaSP_warm
-
 
 # ------------------------------------------------------------------------------------
 ## Set germination and survival fractions from the literature
-sa <-.11# .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
-ga <- .89 #ghersa 1984
-ga <- 100 #gundel 2007, gundel 2006
-ga <- .97 #lin 2018
+sa <-.11 # .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant
+ga <- .89  #ghersa 1984
+#ga <- 100 #gundel 2007, gundel 2006
+#ga <- .97 #lin 2018
 
-sp <- 1 # 100% adults survive observed in field - x in literature
+#sp <- 1 # 100% adults survive observed in field - x in literature
 sp <-.975 # or 2.5% fiegner 2007
 ss <- 0.1
-gs <- .63 # fiegner 2007
-gs <- .90 # schmidt 1998
-gs <- .31 # maret 2005
-gs <- .50 # mackin 2021
+#gs <- .63 # fiegner 2007
+#gs <- .90 # schmidt 1998
+#gs <- .31 # maret 2005
+gs <- .50*.95 # mackin 2021
 
 # ------------------------------------------------------------------------------------
 # Functions for use in coexistence calcualtions
@@ -298,7 +89,6 @@ seedling.equilibrium <- function (N0p, N0s, ss, gs, alphaPP, lambdaP) { # n adul
   return(Ns)
 }
 
-
 #competition growth:
 # annuals
 annual.invade <- function  (N0a, N0p, N0s, sa, ga, alphaAA, alphaAP, lambdaA){
@@ -318,27 +108,14 @@ adult.resident <- function (N0p, N0s, N0a, sp, alphaSS, alphaSP, alphaSA,lambdaS
   return(Np)
 }
 
+
 # ------------------------------------------------------------------------------------
 # run equilibriums (MEAN)
-#####
-#play w/ constants again
-sa <-.11# .11 # ghersa 1984 # costa maia 2009 minus 4% permanently dormant ME
-ga <- .89 #ghersa 1984
-ga <- 100 #gundel 2007, gundel 2006
-ga <- .97 #lin 2018 #ME
-
-sp <- 1 # 100% adults survive observed in field - x in literature
-sp <-.975 # or 2.5% fiegner 2007 #ME
-ss <- 0.1 #ME
-gs <- .63 # fiegner 2007
-gs <- .90 # schmidt 1998
-gs <- .31 # maret 2005
-gs <- .50 # mackin 2021 #Me
 
 time <- 1:300
 tmax=max(time)
-#####
-# annuals, mean parameters
+
+# annuals
 a <- rep(0, length(time))
 
 N0a=1
@@ -392,6 +169,7 @@ for (t in 1:300) {
   eq.perennials.a20[t+1, 3] <- seedling.equilibrium(eq.perennials.a20[t, 2], eq.perennials.a20[t, 3], ss, gs, alphaPPam20, lambdaPam20)
 }
 
+
 #2021 amb
 eq.perennials.a21<-tibble(time, p, s)
 eq.perennials.a21[1,3] <- N0s
@@ -403,6 +181,7 @@ for (t in 1:300) {
 }
 
 
+
 #2020 warm
 eq.perennials.w20<-tibble(time, p, s)
 eq.perennials.w20[1,3] <- N0s
@@ -412,6 +191,7 @@ for (t in 1:300) {
   eq.perennials.w20[t+1, 2] <- adult.equilibrium(eq.perennials.w20[t, 2], eq.perennials.w20[t, 3], sp, alphaSSwm20, alphaSPam20, survivalSwm20)
   eq.perennials.w20[t+1, 3] <- seedling.equilibrium(eq.perennials.w20[t, 2], eq.perennials.w20[t, 3], ss, gs, alphaPPwm20, lambdaPwm20)
 }
+
 
 #2021 warm
 eq.perennials.w21<-tibble(time, p, s)
@@ -434,230 +214,6 @@ eqp1<-ggplot(filter(annual.eq, time<51), aes(time, a, color=temp))+ geom_line()+
 eqp2<-ggplot(filter(perennial.eq, time<51), aes(time, (density), color=temp, linetype=as.factor(type) ))+ geom_line()+ylab("perennial density")+scale_y_continuous(trans='log10', labels = scales::comma)+  scale_colour_manual(values = c("dodgerblue", "darkred"))+facet_wrap(~year)
 
 ggarrange(eqp1, eqp2)
-
-# ------------------------------------------------------------------------------------
-# run equilibriums add 100 chains for each to visualization
-#warmed.annual.chains<-as.tibble(lambdaAw20)%>%mutate(eq=0)
-#ambient.annual.chains<-as.tibble(lambdaAa20)%>%mutate(eq=0)
-
-#warmed.seedling.chains<-as.tibble(survivalSw20)%>%mutate(eq=0)
-#ambient.seedling.chains<-as.tibble(survivalSa20)%>%mutate(eq=0)
-  
-#warmed.adult.chains<-as.tibble(lambdaPw20)%>%mutate(eq=0)
-#ambient.adult.chains<-as.tibble(lambdaPa20)%>%mutate(eq=0)
-
-#annuals
-#for (i in 1:nrow(warmed.annual.chains)) {
-##  a <- rep(0, length(time))
-#  N0a=1
-#  eq.annuals.a <- tibble(time, a)
-#  eq.annuals.a[1,2] = as.numeric(N0a)
-#  
-#  for (t in 1:tmax) {
-#    eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAa[i, 4], lambdaAa[i, 4])
-#  }
-#  ambient.annual.chains[i, 4]<-eq.annuals.a[tmax, 2]
-#  
-#  eq.annuals.w<- tibble(time, a)
-#  eq.annuals.w[1,2] <- N0a
-#  
-#  for (t in 1:tmax) {
-#    eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAw[i, 4], lambdaAw[i, 4])
- # }
-#  warmed.annual.chains[i, 4]<-eq.annuals.w[tmax, 2]
-#}
-
-
-N0a=1
-time <- 1:10
-tmax=max(time)
-
-#2020
-warmed.annual.chains120<-as.tibble(lambdaAw20[1:100])
-warmed.annual.chains120 <- cbind(warmed.annual.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0a)
-
-ambient.annual.chains120<-as.tibble(lambdaAa20[1:100])
-ambient.annual.chains120 <- cbind(ambient.annual.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0a)
-
-
-for (i in 1:100) {
-  for (t in 1:tmax) {
-    ambient.annual.chains120[i, t+2] <- annual.equilibrium(ambient.annual.chains120[i, t+1], sa, ga, alphaAAa20[i], lambdaAa20[i])
-  }
-  for (t in 1:tmax) {
-    warmed.annual.chains120[i, t+2] <- annual.equilibrium(warmed.annual.chains120[i, t+1], sa, ga, alphaAAw20[i], lambdaAw20[i])
-  }
-}
-
-#2021
-warmed.annual.chains121<-as.tibble(lambdaAw21[1:100])
-warmed.annual.chains121 <- cbind(warmed.annual.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0a)
-
-ambient.annual.chains121<-as.tibble(lambdaAa21[1:100])
-ambient.annual.chains121 <- cbind(ambient.annual.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0a)
-
-
-for (i in 1:100) {
-  for (t in 1:tmax) {
-    ambient.annual.chains121[i, t+2] <- annual.equilibrium(ambient.annual.chains121[i, t+1], sa, ga, alphaAAa21[i], lambdaAa21[i])
-  }
-  for (t in 1:tmax) {
-    warmed.annual.chains121[i, t+2] <- annual.equilibrium(warmed.annual.chains121[i, t+1], sa, ga, alphaAAw21[i], lambdaAw21[i])
-  }
-}
-
-
-#perennials
-
-tmax=300
-
-#set up empty dataframes with rows as iterations and columns as time
-warmed.seedling.chains120<-as.tibble(survivalSw20[1:100])
-warmed.seedling.chains120 <- cbind(warmed.seedling.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0s)
-
-ambient.seedling.chains120<-as.tibble(survivalSa20[1:100])
-ambient.seedling.chains120 <- cbind(ambient.seedling.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0s)
-
-warmed.adult.chains120<-as.tibble(lambdaPw20[1:100])
-warmed.adult.chains120 <- cbind(warmed.adult.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0p)
-
-ambient.adult.chains120<-as.tibble(lambdaPa20[1:100])
-ambient.adult.chains120 <- cbind(ambient.adult.chains120, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0p)
-
-#populate data in the data frames
-for (i in 1:100) {  # this value is always 2000, no need to change it (just to get this to run I do)
-  for (t in 1:tmax) {
-    ambient.adult.chains120[i, t+2] <- adult.equilibrium(ambient.adult.chains120[i, t+1], ambient.seedling.chains120[i, t+1], sp, alphaSSa20[i], alphaSPa20[i], survivalSa20[i])
-    ambient.seedling.chains120[i, t+2] <- seedling.equilibrium(ambient.adult.chains120[i, t+1], ambient.seedling.chains120[i, t+1], ss, gs, alphaPPa20[i], lambdaPa20[i])
-  }
-  for (t in 1:tmax) {
-    warmed.adult.chains120[i, t+2] <- adult.equilibrium(warmed.adult.chains120[i, t+1], warmed.seedling.chains120[i, t+1], sp, alphaSSw20[i], alphaSPw20[i], survivalSw20[i])
-    warmed.seedling.chains120[i, t+2] <- seedling.equilibrium(warmed.adult.chains120[i,  t+1], warmed.seedling.chains120[i, t+1], ss, gs, alphaPPw20[i], lambdaPw20[i])
-  }
-}
-
-
-#2021
-warmed.seedling.chains121<-as.tibble(survivalSw21[1:100])
-warmed.seedling.chains121 <- cbind(warmed.seedling.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0s)
-
-ambient.seedling.chains121<-as.tibble(survivalSa21[1:100])
-ambient.seedling.chains121 <- cbind(ambient.seedling.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0s)
-
-warmed.adult.chains121<-as.tibble(lambdaPw21[1:100])
-warmed.adult.chains121 <- cbind(warmed.adult.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0p)
-
-ambient.adult.chains121<-as.tibble(lambdaPa21[1:100])
-ambient.adult.chains121 <- cbind(ambient.adult.chains121, t(rep(0,tmax+1)))%>%
-  mutate(`1`=N0p)
-
-#populate data in the daata frames
-for (i in 1:100) {  # this value is always 2100, no need to change it (just to get this to run I do)
-  for (t in 1:tmax) {
-    ambient.adult.chains121[i, t+2] <- adult.equilibrium(ambient.adult.chains121[i, t+1], ambient.seedling.chains121[i, t+1], sp, alphaSSa21[i], alphaSPa21[i], survivalSa21[i])
-    ambient.seedling.chains121[i, t+2] <- seedling.equilibrium(ambient.adult.chains121[i, t+1], ambient.seedling.chains121[i, t+1], ss, gs, alphaPPa21[i], lambdaPa21[i])
-  }
-  for (t in 1:tmax) {
-    warmed.adult.chains121[i, t+2] <- adult.equilibrium(warmed.adult.chains121[i, t+1], warmed.seedling.chains121[i, t+1], sp, alphaSSw21[i], alphaSPw21[i], survivalSw21[i])
-    warmed.seedling.chains121[i, t+2] <- seedling.equilibrium(warmed.adult.chains121[i, t+1], warmed.seedling.chains121[i, t+1], ss, gs, alphaPPw21[i], lambdaPw21[i])
-  }
-}
-
-
-ambient.annual.chains120<-rowid_to_column(ambient.annual.chains120)
-warmed.annual.chains120<-rowid_to_column(warmed.annual.chains120)
-ambient.annual.chains121<-rowid_to_column(ambient.annual.chains121)
-warmed.annual.chains121<-rowid_to_column(warmed.annual.chains121)
-
-ambient.seedling.chains120<-rowid_to_column(ambient.seedling.chains120)
-warmed.seedling.chains120<-rowid_to_column(warmed.seedling.chains120)
-ambient.seedling.chains121<-rowid_to_column(ambient.seedling.chains121)
-warmed.seedling.chains121<-rowid_to_column(warmed.seedling.chains121)
-
-ambient.adult.chains120<-rowid_to_column(ambient.adult.chains120)
-warmed.adult.chains120<-rowid_to_column(warmed.adult.chains120)
-ambient.adult.chains121<-rowid_to_column(ambient.adult.chains121)
-warmed.adult.chains121<-rowid_to_column(warmed.adult.chains121)
-
-# visualize chains
-annual.chains20<-  rbind(mutate(ambient.annual.chains120, treatment="amb")[1:100,], mutate(warmed.annual.chains120, treatment="warm")[1:100,])%>%
-  gather("time", "population", 3:13)%>% #this only runs to 14 because it only runs for 10 years
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-seedling.chains20<-rbind(mutate(ambient.seedling.chains120, treatment="amb")[1:50,],  mutate(warmed.seedling.chains120, treatment="warm")[1:50,])%>%
-  gather("time", "population", 3:303) %>% # this runs to 304 because it takes 300 years to equilibrate
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-adult.chains20<-   rbind(mutate(ambient.adult.chains120, treatment="amb")[1:50,], mutate(warmed.adult.chains120, treatment="warm")[1:50,])%>%
-  gather("time", "population", 3:303)%>%
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-
-annual.chains21<-  rbind(mutate(ambient.annual.chains121, treatment="amb")[1:100,], mutate(warmed.annual.chains121, treatment="warm")[1:100,])%>%
-  gather("time", "population", 3:13)%>% #this only runs to 14 because it only runs for 10 years
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-seedling.chains21<-rbind(mutate(ambient.seedling.chains121, treatment="amb")[1:50,],  mutate(warmed.seedling.chains121, treatment="warm")[1:50,])%>%
-  gather("time", "population", 3:303) %>% # this runs to 304 because it takes 300 years to equilibrate
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-adult.chains21<-   rbind(mutate(ambient.adult.chains121, treatment="amb")[1:50,], mutate(warmed.adult.chains121, treatment="warm")[1:50,])%>%
-  gather("time", "population", 3:303)%>%
-  mutate(time=as.numeric(time))%>%
-  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
-
-
-eqannual20<-ggplot(subset(annual.chains20, population>0), aes(time, (population)))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density 2020")+
-  #geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+ #?
-  scale_colour_manual(values = c("dodgerblue",  "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-eqannual21<-ggplot(subset(annual.chains21, population>0), aes(time, (population)))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density 2021")+
-  #geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+ #?
-  scale_colour_manual(values = c("dodgerblue",  "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-eqseedling20<-ggplot(subset(seedling.chains20, population>0), aes(time, population))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density 2020")+
- # geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-eqseedling21<-ggplot(subset(seedling.chains21, population>0), aes(time, population))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density 2021")+
-  # geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-
-eqadult20<-ggplot(subset(adult.chains20, population>0), aes(time, (population)))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density 2020")+
-  geom_line(data=subset(subset(perennial.eq,year==20) , type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-eqadult21<-ggplot(subset(adult.chains21, population>0), aes(time, (population)))+ 
-  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density 2021")+
-   geom_line(data=subset(subset(perennial.eq,year==21) ,  type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
-  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
-
-## population ove time
-ggarrange(eqannual20, eqannual21, nrow=1, ncol=2, common.legend = T)
-ggarrange(eqadult20, eqadult21, nrow=1, ncol=2, common.legend = T)
-ggarrange(eqseedling20, eqseedling21, nrow=1, ncol=2, common.legend = T)
 
 
 # ------------------------------------------------------------------------------------
@@ -923,42 +479,48 @@ allGRWR<-rbind(annualGRWRa20, annualGRWRw20, perennialGRWRa20, perennialGRWRw20,
 #plot of mean paremter GRWR
 ggplot(allGRWR, aes(x=trt, y=GRWR)) + geom_hline(yintercept=0)+geom_bar(stat="identity", aes(fill=trt)) +facet_wrap(year~invader, scales="free") +xlab("") +ylab("Invader Growth Rate (r) When Rare") + scale_fill_manual(values = c("dodgerblue", "darkred"))
 
-#sensitivity .. doing this manually. Change each parameter up 5%, run everything then save it as a new object
-baselineGRWR <- allGRWR%>%mutate(param="baseline")
-lambdaaGRWR <- allGRWR%>%mutate(param="lambdaaa")
-lambdapGRWR <- allGRWR%>%mutate(param="lambdap")
-gaGRWR <- allGRWR%>%mutate(param="ga")#this is inverse (.96 not 1.05)
-gsGRWR <- allGRWR%>%mutate(param="gs")
-spGRWR <- allGRWR%>%mutate(param="sp") #this is inverse (.96 not 1.05)
-ssGRWR <- allGRWR%>%mutate(param="ss")
-saGRWR <- allGRWR%>%mutate(param="sa")
-alphaapGRWR <- allGRWR%>%mutate(param="aap")
-alphaaaGRWR <- allGRWR%>%mutate(param="aaa")
-alphappGRWR <- allGRWR%>%mutate(param="app")
-alphapaGRWR <- allGRWR%>%mutate(param="apa")
-alphassGRWR <- allGRWR%>%mutate(param="ass")
-alphasaGRWR <- allGRWR%>%mutate(param="asa")
-alphaspGRWR <- allGRWR%>%mutate(param="asp")
+#sensitivity .. doing this manually. Change each parameter down 5%, run everything then save it as a new object
+baselineGRWR <- allGRWR%>%mutate(param="baseline") #done
+lambdaaGRWR <- allGRWR%>%mutate(param="lambdaa") #done
+lambdapGRWR <- allGRWR%>%mutate(param="lambdap") # done
+lambdasGRWR <- allGRWR%>%mutate(param="lambdas") #done
 
-sensitivity<-rbind(baselineGRWR, lambdaaGRWR,lambdapGRWR, gaGRWR, gsGRWR,spGRWR, ssGRWR, saGRWR, 
+
+alphaapGRWR <- allGRWR%>%mutate(param="aap") #done
+alphaaaGRWR <- allGRWR%>%mutate(param="aaa") #done
+alphappGRWR <- allGRWR%>%mutate(param="app") #done
+alphapaGRWR <- allGRWR%>%mutate(param="apa") #done
+alphassGRWR <- allGRWR%>%mutate(param="ass") #done
+alphasaGRWR <- allGRWR%>%mutate(param="asa") #done
+alphaspGRWR <- allGRWR%>%mutate(param="asp") #done
+
+gaGRWR <- allGRWR%>%mutate(param="ga") #done
+gsGRWR <- allGRWR%>%mutate(param="gs") #done
+spGRWR <- allGRWR%>%mutate(param="sp") #done
+ssGRWR <- allGRWR%>%mutate(param="ss") #done
+saGRWR <- allGRWR%>%mutate(param="sa") #done
+
+sensitivity<-rbind(baselineGRWR, lambdaaGRWR,lambdapGRWR,lambdasGRWR, gaGRWR, gsGRWR,spGRWR, ssGRWR, saGRWR, 
                    alphaapGRWR, alphaaaGRWR, alphappGRWR, alphapaGRWR, alphassGRWR, alphasaGRWR, alphaspGRWR  )%>%
   spread(param, GRWR)%>%
-  mutate(lambdaaa=-(lambdaaa-baseline), lambdap=-(lambdap-baseline), 
-         ga=(ga-baseline), gs=-(gs-baseline),sp=(sp-baseline), 
-         ss=-(ss-baseline), sa=-(sa-baseline), 
-         aap=-(aap-baseline), aaa=-(aaa-baseline), app=-(app-baseline), 
-         apa=-(apa-baseline), ass=-(ass-baseline), asa=-(asa-baseline), 
-         asp=-(asp-baseline) )%>%
-  gather(param, GRWRdiff, 4:18)%>%
-  #filter(param!="baseline")%>%
-  group_by(invader, param)%>%
-  summarize(GRWRdiffm=mean(GRWRdiff))
+  mutate(lambdaa=(lambdaa-baseline), lambdap=(lambdap-baseline), lambdas=(lambdas-baseline), 
+         ga=(ga-baseline), gs=(gs-baseline),sp=(sp-baseline), 
+         ss=(ss-baseline), sa=(sa-baseline), 
+         aap=(aap-baseline), aaa=(aaa-baseline), app=(app-baseline), 
+         apa=(apa-baseline), ass=(ass-baseline), asa=(asa-baseline), 
+         asp=(asp-baseline) )%>%
+  gather(param, GRWRdiff, 4:19)%>%
+  filter(param!="baseline")
 
-ggplot(sensitivity, aes(param, GRWRdiffm))+
-  geom_bar(stat="identity")+
-  facet_wrap(~invader, scales="free")+
-  geom_hline(yintercept = 0)+ theme(axis.text.x=element_text(angle = -90, hjust = 0))
-#final populations
+sensitivity$param<-factor(sensitivity$param, levels = c("lambdap", "lambdas", "lambdaa", "gs", "ss", "sp", "app", "apa", "asp", "ga", "sa", "ass", "asa", "aap", "aaa"))
+
+ggplot(subset(sensitivity), aes(param, GRWRdiff))+
+  geom_bar(stat="identity", aes(fill=trt), position="dodge")+
+  facet_grid(invader~year, scales="free")+
+  geom_hline(yintercept = 0)+ theme(axis.text.x=element_text(angle = -90, hjust = 0))+
+scale_fill_manual(values = c("dodgerblue", "darkred"))
+
+#final populations ----
 annual.annual<-rbind((annual.invasion.a20[300,2])%>%
                       mutate(type="lolium", invader="Invader: Lolium", trt="ambient", year=2020),
                     (annual.invasion.w20[300,2])%>%
@@ -995,48 +557,42 @@ annual.adult<-rbind((annual.invasion.a20[300,3])%>%
 annual_eqpop<-rbind(annual.annual, annual.adult, annual.seedling)
 
 
+
+
+
 #plot of equilibrium plots when annuals are invadiang
-ggplot(annual_eqpop, aes(x=as.factor(year), y=eqpop)) + 
-  geom_bar(stat="identity", position="dodge", aes(fill=trt)) +
+
+nocomp<-rbind(
+  mutate(annual.eq, type="lolium", density=a)%>%select(-a),
+  mutate(perennial.eq, type=ifelse(type=="adult", "festuca adult", "festuca seedling")
+))%>%
+  filter(time==300)
+
+tog<-mutate(nocomp, year=ifelse(year==20, 2020, 2021))%>%
+  mutate(trt=ifelse(temp=="amb", "ambient", "warmed"))
+tog<-left_join(tog, annual_eqpop)%>%
+  mutate(prop=eqpop/density)
+
+r1<- ggplot(nocomp, aes(x=as.factor(year), y=density)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=temp)) +
   facet_wrap(~type, scales="free") +xlab("") +
-  ylab("Equilibrium population under annual invasion") + 
+  ylab("Equilibrium population without competition") + 
   scale_fill_manual(values = c("dodgerblue", "darkred"))
 
-#when perennialsa are invading
-perennial.annual<-rbind((perennial.invasion.a20[300,2])%>%
-                       mutate(type="lolium", trt="ambient", year=2020),
-                     (perennial.invasion.w20[300,2])%>%
-                       mutate(type="lolium", trt="warmed", year=2020),
-                     (perennial.invasion.a21[300,2])%>%
-                       mutate(type="lolium", trt="ambient", year=2021),
-                     (perennial.invasion.w21[300,2])%>%
-                       mutate(type="lolium", trt="warmed", year=2021))%>%
-  mutate(eqpop=a)%>%
-  select(-a)
+r2 <- ggplot(annual_eqpop, aes(x=as.factor(year), y=eqpop)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=trt)) +
+  facet_wrap(~type, scales="free") +xlab("") +
+  ylab("Equilibrium population with competition") + 
+  scale_fill_manual(values = c("dodgerblue", "darkred"))
 
-perennial.seedling<-rbind((perennial.invasion.a20[300,4])%>%
-                         mutate(type="festuca seedling", trt="ambient", year=2020),
-                       (perennial.invasion.w20[300,4])%>%
-                         mutate(type="festuca seedling",  trt="warmed", year=2020),
-                       (perennial.invasion.a21[300,4])%>%
-                         mutate(type="festuca seedling",  trt="ambient", year=2021),
-                       (perennial.invasion.w21[300,4])%>%
-                         mutate(type="festuca seedling", trt="warmed", year=2021))%>%
-  mutate(eqpop=s)%>%
-  select(-s)
+r3 <- ggplot(tog, aes(x=as.factor(year), y=prop)) + 
+  geom_bar(stat="identity", position="dodge", aes(fill=trt)) +
+  facet_wrap(~type, scales="free") +xlab("") +
+  ylab("Proportion of equilibrium population with intra-specific competition ") + 
+  scale_fill_manual(values = c("dodgerblue", "darkred"))
 
-perennial.adult<-rbind((perennial.invasion.a20[300,3])%>%
-                      mutate(type="festuca adult", trt="ambient", year=2020),
-                    (perennial.invasion.w20[300,3])%>%
-                      mutate(type="festuca adult", trt="warmed", year=2020),
-                    (perennial.invasion.a21[300,3])%>%
-                      mutate(type="festuca adult", trt="ambient", year=2021),
-                    (perennial.invasion.w21[300,3])%>%
-                      mutate(type="festuca adult", trt="warmed", year=2021))%>%
-  mutate(eqpop=p)%>%
-  select(-p)
 
-perennial_eqpop<-rbind(perennial.annual, perennial.adult, perennial.seedling)
+ggarrange(r1, r2, r3, nrow=3, ncol=1)
 
 #plot of equilibrium plots when perennials are invadiang
 ggplot(perennial_eqpop,aes(x=as.factor(year), y=eqpop)) + 
@@ -1151,7 +707,417 @@ for (t in 1:tmax) {
   wSc[i, t+4] <- seedling.equilibrium(wPc[i, t+3], wSc[i, t+3], ss, gs, alphaPPw[i, 4], lambdaPw[i, 4])
 }
 
+
+#all chains (posterior predictive plots) ----
+
+#2020
+#annuals
+iterations_a20<-(as.data.frame(rstan::extract(annuals_fit2020)))%>%
+  mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
+         alphaAA_warm=alphaAA_amb+alphaAA_slope,
+         alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
+  select(-lambdaA_slope, -alphaAA_slope, -alphaAP_slope)
+iterations_a20<-rowid_to_column(iterations_a20)%>%
+  gather(param, value, 2:8)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+#adults
+iterations_p20<-(as.data.frame(rstan::extract(adults_fit2020)))%>%
+  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
+         alphaPA_warm=alphaPA_amb+alphaPA_slope,
+         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
+  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)
+iterations_p20<-rowid_to_column(iterations_p20)%>%
+  gather(param, value, 2:8)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+#seedlings
+iterations_s20<-(as.data.frame(rstan::extract(seedlings_fit2020)))%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope,
+         alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)
+iterations_s20<-rowid_to_column(iterations_s20)%>%
+  gather(param, value, 2:9)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+#2021
+
+#annuals
+iterations_a21<-(as.data.frame(rstan::extract(annuals_fit2021)))%>%
+  mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
+         alphaAA_warm=alphaAA_amb+alphaAA_slope,
+         alphaAP_warm=alphaAP_amb+alphaAP_slope)%>%
+  select(-lambdaA_slope, -alphaAA_slope, -alphaAP_slope)
+iterations_a21<-rowid_to_column(iterations_a21)%>%
+  gather(param, value, 2:8)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+#adults
+iterations_p21<-(as.data.frame(rstan::extract(adults_fit2021)))%>%
+  mutate(lambdaP_warm=lambdaP_amb+lambdaP_slope, 
+         alphaPA_warm=alphaPA_amb+alphaPA_slope,
+         alphaPP_warm=alphaPP_amb+alphaPP_slope)%>%
+  select(-lambdaP_slope, -alphaPA_slope, -alphaPP_slope)
+iterations_p21<-rowid_to_column(iterations_p21)%>%
+  gather(param, value, 2:8)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+#seedlings
+iterations_s21<-(as.data.frame(rstan::extract(seedlings_fit2021)))%>%
+  mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
+         alphaSA_warm=alphaSA_amb+alphaSA_slope,
+         alphaSP_warm=alphaSP_amb+alphaSP_slope,
+         alphaSS_warm=alphaSS_amb+alphaSS_slope)%>%
+  select(-survivalS_slope, -alphaSA_slope, -alphaSP_slope, -alphaSS_slope)
+iterations_s21<-rowid_to_column(iterations_s21)%>%
+  gather(param, value, 2:9)%>%
+  mutate(exp=exp(value))%>%
+  select(-value)%>%
+  spread(param, exp)
+
+
+year1<-cbind(subset(iterations_a20, rowid<1001), subset(iterations_p20, rowid<1001), subset(iterations_s20, rowid<1001))%>%
+  select(-8, -9, -16, -17, -24)%>%
+  gather("param", "value", 2:21)%>%
+  mutate(warmtrt=ifelse(grepl("warm", param), "warmed", "ambient"))%>%
+  mutate(stage=ifelse(grepl("AA", param), "annual", NA))%>%
+  mutate(stage=ifelse(grepl("AP", param), "annual", stage))%>%
+  mutate(stage=ifelse(grepl("lambdaA", param), "annual", stage))%>%
+  mutate(stage=ifelse(grepl("PA", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("PP", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("lambdaP", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("SA", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("SP", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("survivalS", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("SS", param), "seedling", stage))%>%
+  mutate(type=ifelse(grepl("alpha", param), "alpha", "lambda"))%>%
+  mutate(type=ifelse(grepl("AA", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("SS", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("PP", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("AP", param), "adult_alpha", type))%>%
+  mutate(type=ifelse(grepl("SP", param), "adult_alpha", type))%>%
+  mutate(type=ifelse(grepl("SA", param), "annual_alpha", type))%>%
+  mutate(type=ifelse(grepl("PA", param), "annual_alpha", type))%>%
+  mutate(year=2020)
+
+year2<-cbind(subset(iterations_a21, rowid<1001), subset(iterations_p21, rowid<1001), subset(iterations_s21, rowid<1001))%>%
+  select(-8, -9, -16, -17, -24)%>%
+  gather("param", "value", 2:21)%>%
+  mutate(warmtrt=ifelse(grepl("warm", param), "warmed", "ambient"))%>%
+  mutate(stage=ifelse(grepl("AA", param), "annual", NA))%>%
+  mutate(stage=ifelse(grepl("AP", param), "annual", stage))%>%
+  mutate(stage=ifelse(grepl("lambdaA", param), "annual", stage))%>%
+  mutate(stage=ifelse(grepl("PA", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("PP", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("lambdaP", param), "adult", stage))%>%
+  mutate(stage=ifelse(grepl("SA", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("SP", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("survivalS", param), "seedling", stage))%>%
+  mutate(stage=ifelse(grepl("SS", param), "seedling", stage))%>%
+  mutate(type=ifelse(grepl("alpha", param), "alpha", "lambda"))%>%
+  mutate(type=ifelse(grepl("AA", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("SS", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("PP", param), "self_alpha", type))%>%
+  mutate(type=ifelse(grepl("AP", param), "adult_alpha", type))%>%
+  mutate(type=ifelse(grepl("SP", param), "adult_alpha", type))%>%
+  mutate(type=ifelse(grepl("SA", param), "annual_alpha", type))%>%
+  mutate(type=ifelse(grepl("PA", param), "annual_alpha", type))%>%
+  mutate(year=2021)
+
+alliter<-rbind(year1, year2)
+
+
+ggplot(subset(alliter, stage=="annual"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
+ggplot(subset(alliter, stage=="adult"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
+ggplot(subset(alliter, stage=="seedling"), aes(as.factor(year), value, color=warmtrt)) +geom_boxplot()  +facet_wrap(~type, scale='free') +ylab("parameter value") +scale_color_manual(values=c("blue", "red"))
+
+
+lambdaAa20<-  iterations_a20$lambdaA_amb
+lambdaAw20<- iterations_a20$lambdaA_warm
+survivalSa20<- iterations_s20$survivalS_amb
+survivalSw20<- iterations_s20$survivalS_warm
+lambdaPa20<- iterations_p20$lambdaP_amb
+lambdaPw20<- iterations_p20$lambdaP_warm
+
+alphaAAa20<- iterations_a20$alphaAA_amb
+alphaAAw20<- iterations_a20$alphaAA_warm
+alphaAPa20<- iterations_a20$alphaAP_amb
+alphaAPw20<- iterations_a20$alphaAP_warm
+
+alphaPAa20<- iterations_p20$alphaPA_amb
+alphaPAw20<-  iterations_p20$alphaPA_warm
+alphaPPa20<- iterations_p20$alphaPP_amb
+alphaPPw20<- iterations_p20$alphaPP_warm
+
+alphaSAa20<- iterations_s20$alphaSA_amb
+alphaSAw20<- iterations_s20$alphaSA_warm
+alphaSSa20<- iterations_s20$alphaSS_amb
+alphaSSw20<- iterations_s20$alphaSS_warm
+alphaSPa20<- iterations_s20$alphaSP_amb
+alphaSPw20<- iterations_s20$alphaSP_warm
+
+
+
+lambdaAa21<-  iterations_a21$lambdaA_amb
+lambdaAw21<- iterations_a21$lambdaA_warm
+survivalSa21<- iterations_s21$survivalS_amb
+survivalSw21<- iterations_s21$survivalS_warm
+lambdaPa21<- iterations_p21$lambdaP_amb
+lambdaPw21<- iterations_p21$lambdaP_warm
+
+alphaAAa21<- iterations_a21$alphaAA_amb
+alphaAAw21<- iterations_a21$alphaAA_warm
+alphaAPa21<- iterations_a21$alphaAP_amb
+alphaAPw21<- iterations_a21$alphaAP_warm
+
+alphaPAa21<- iterations_p21$alphaPA_amb
+alphaPAw21<-  iterations_p21$alphaPA_warm
+alphaPPa21<- iterations_p21$alphaPP_amb
+alphaPPw21<- iterations_p21$alphaPP_warm
+
+alphaSAa21<- iterations_s21$alphaSA_amb
+alphaSAw21<- iterations_s21$alphaSA_warm
+alphaSSa21<- iterations_s21$alphaSS_amb
+alphaSSw21<- iterations_s21$alphaSS_warm
+alphaSPa21<- iterations_s21$alphaSP_amb
+alphaSPw21<- iterations_s21$alphaSP_warm
+
+
+# run equilibriums add 100 chains for each to visualization
+#warmed.annual.chains<-as.tibble(lambdaAw20)%>%mutate(eq=0)
+#ambient.annual.chains<-as.tibble(lambdaAa20)%>%mutate(eq=0)
+
+#warmed.seedling.chains<-as.tibble(survivalSw20)%>%mutate(eq=0)
+#ambient.seedling.chains<-as.tibble(survivalSa20)%>%mutate(eq=0)
+
+#warmed.adult.chains<-as.tibble(lambdaPw20)%>%mutate(eq=0)
+#ambient.adult.chains<-as.tibble(lambdaPa20)%>%mutate(eq=0)
+
+#annuals
+#for (i in 1:nrow(warmed.annual.chains)) {
+##  a <- rep(0, length(time))
+#  N0a=1
+#  eq.annuals.a <- tibble(time, a)
+#  eq.annuals.a[1,2] = as.numeric(N0a)
+#  
+#  for (t in 1:tmax) {
+#    eq.annuals.a[t+1,2] <- annual.equilibrium(eq.annuals.a[t,2], sa, ga, alphaAAa[i, 4], lambdaAa[i, 4])
+#  }
+#  ambient.annual.chains[i, 4]<-eq.annuals.a[tmax, 2]
+#  
+#  eq.annuals.w<- tibble(time, a)
+#  eq.annuals.w[1,2] <- N0a
+#  
+#  for (t in 1:tmax) {
+#    eq.annuals.w[t+1,2] <- annual.equilibrium(eq.annuals.w[t,2], sa, ga, alphaAAw[i, 4], lambdaAw[i, 4])
+# }
+#  warmed.annual.chains[i, 4]<-eq.annuals.w[tmax, 2]
+#}
+
+
+N0a=1
+time <- 1:10
+tmax=max(time)
+
+#2020
+warmed.annual.chains120<-as.tibble(lambdaAw20[1:100])
+warmed.annual.chains120 <- cbind(warmed.annual.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+ambient.annual.chains120<-as.tibble(lambdaAa20[1:100])
+ambient.annual.chains120 <- cbind(ambient.annual.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+
+for (i in 1:100) {
+  for (t in 1:tmax) {
+    ambient.annual.chains120[i, t+2] <- annual.equilibrium(ambient.annual.chains120[i, t+1], sa, ga, alphaAAa20[i], lambdaAa20[i])
+  }
+  for (t in 1:tmax) {
+    warmed.annual.chains120[i, t+2] <- annual.equilibrium(warmed.annual.chains120[i, t+1], sa, ga, alphaAAw20[i], lambdaAw20[i])
+  }
 }
+
+#2021
+warmed.annual.chains121<-as.tibble(lambdaAw21[1:100])
+warmed.annual.chains121 <- cbind(warmed.annual.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+ambient.annual.chains121<-as.tibble(lambdaAa21[1:100])
+ambient.annual.chains121 <- cbind(ambient.annual.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0a)
+
+
+for (i in 1:100) {
+  for (t in 1:tmax) {
+    ambient.annual.chains121[i, t+2] <- annual.equilibrium(ambient.annual.chains121[i, t+1], sa, ga, alphaAAa21[i], lambdaAa21[i])
+  }
+  for (t in 1:tmax) {
+    warmed.annual.chains121[i, t+2] <- annual.equilibrium(warmed.annual.chains121[i, t+1], sa, ga, alphaAAw21[i], lambdaAw21[i])
+  }
+}
+
+
+#perennials
+
+tmax=300
+
+#set up empty dataframes with rows as iterations and columns as time
+warmed.seedling.chains120<-as.tibble(survivalSw20[1:100])
+warmed.seedling.chains120 <- cbind(warmed.seedling.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+ambient.seedling.chains120<-as.tibble(survivalSa20[1:100])
+ambient.seedling.chains120 <- cbind(ambient.seedling.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+warmed.adult.chains120<-as.tibble(lambdaPw20[1:100])
+warmed.adult.chains120 <- cbind(warmed.adult.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+ambient.adult.chains120<-as.tibble(lambdaPa20[1:100])
+ambient.adult.chains120 <- cbind(ambient.adult.chains120, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+#populate data in the data frames
+for (i in 1:100) {  # this value is always 2000, no need to change it (just to get this to run I do)
+  for (t in 1:tmax) {
+    ambient.adult.chains120[i, t+2] <- adult.equilibrium(ambient.adult.chains120[i, t+1], ambient.seedling.chains120[i, t+1], sp, alphaSSa20[i], alphaSPa20[i], survivalSa20[i])
+    ambient.seedling.chains120[i, t+2] <- seedling.equilibrium(ambient.adult.chains120[i, t+1], ambient.seedling.chains120[i, t+1], ss, gs, alphaPPa20[i], lambdaPa20[i])
+  }
+  for (t in 1:tmax) {
+    warmed.adult.chains120[i, t+2] <- adult.equilibrium(warmed.adult.chains120[i, t+1], warmed.seedling.chains120[i, t+1], sp, alphaSSw20[i], alphaSPw20[i], survivalSw20[i])
+    warmed.seedling.chains120[i, t+2] <- seedling.equilibrium(warmed.adult.chains120[i,  t+1], warmed.seedling.chains120[i, t+1], ss, gs, alphaPPw20[i], lambdaPw20[i])
+  }
+}
+
+
+#2021
+warmed.seedling.chains121<-as.tibble(survivalSw21[1:100])
+warmed.seedling.chains121 <- cbind(warmed.seedling.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+ambient.seedling.chains121<-as.tibble(survivalSa21[1:100])
+ambient.seedling.chains121 <- cbind(ambient.seedling.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0s)
+
+warmed.adult.chains121<-as.tibble(lambdaPw21[1:100])
+warmed.adult.chains121 <- cbind(warmed.adult.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+ambient.adult.chains121<-as.tibble(lambdaPa21[1:100])
+ambient.adult.chains121 <- cbind(ambient.adult.chains121, t(rep(0,tmax+1)))%>%
+  mutate(`1`=N0p)
+
+#populate data in the daata frames
+for (i in 1:100) {  # this value is always 2100, no need to change it (just to get this to run I do)
+  for (t in 1:tmax) {
+    ambient.adult.chains121[i, t+2] <- adult.equilibrium(ambient.adult.chains121[i, t+1], ambient.seedling.chains121[i, t+1], sp, alphaSSa21[i], alphaSPa21[i], survivalSa21[i])
+    ambient.seedling.chains121[i, t+2] <- seedling.equilibrium(ambient.adult.chains121[i, t+1], ambient.seedling.chains121[i, t+1], ss, gs, alphaPPa21[i], lambdaPa21[i])
+  }
+  for (t in 1:tmax) {
+    warmed.adult.chains121[i, t+2] <- adult.equilibrium(warmed.adult.chains121[i, t+1], warmed.seedling.chains121[i, t+1], sp, alphaSSw21[i], alphaSPw21[i], survivalSw21[i])
+    warmed.seedling.chains121[i, t+2] <- seedling.equilibrium(warmed.adult.chains121[i, t+1], warmed.seedling.chains121[i, t+1], ss, gs, alphaPPw21[i], lambdaPw21[i])
+  }
+}
+
+
+ambient.annual.chains120<-rowid_to_column(ambient.annual.chains120)
+warmed.annual.chains120<-rowid_to_column(warmed.annual.chains120)
+ambient.annual.chains121<-rowid_to_column(ambient.annual.chains121)
+warmed.annual.chains121<-rowid_to_column(warmed.annual.chains121)
+
+ambient.seedling.chains120<-rowid_to_column(ambient.seedling.chains120)
+warmed.seedling.chains120<-rowid_to_column(warmed.seedling.chains120)
+ambient.seedling.chains121<-rowid_to_column(ambient.seedling.chains121)
+warmed.seedling.chains121<-rowid_to_column(warmed.seedling.chains121)
+
+ambient.adult.chains120<-rowid_to_column(ambient.adult.chains120)
+warmed.adult.chains120<-rowid_to_column(warmed.adult.chains120)
+ambient.adult.chains121<-rowid_to_column(ambient.adult.chains121)
+warmed.adult.chains121<-rowid_to_column(warmed.adult.chains121)
+
+# visualize chains
+annual.chains20<-  rbind(mutate(ambient.annual.chains120, treatment="amb")[1:100,], mutate(warmed.annual.chains120, treatment="warm")[1:100,])%>%
+  gather("time", "population", 3:13)%>% #this only runs to 14 because it only runs for 10 years
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+seedling.chains20<-rbind(mutate(ambient.seedling.chains120, treatment="amb")[1:50,],  mutate(warmed.seedling.chains120, treatment="warm")[1:50,])%>%
+  gather("time", "population", 3:303) %>% # this runs to 304 because it takes 300 years to equilibrate
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+adult.chains20<-   rbind(mutate(ambient.adult.chains120, treatment="amb")[1:50,], mutate(warmed.adult.chains120, treatment="warm")[1:50,])%>%
+  gather("time", "population", 3:303)%>%
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+
+annual.chains21<-  rbind(mutate(ambient.annual.chains121, treatment="amb")[1:100,], mutate(warmed.annual.chains121, treatment="warm")[1:100,])%>%
+  gather("time", "population", 3:13)%>% #this only runs to 14 because it only runs for 10 years
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+seedling.chains21<-rbind(mutate(ambient.seedling.chains121, treatment="amb")[1:50,],  mutate(warmed.seedling.chains121, treatment="warm")[1:50,])%>%
+  gather("time", "population", 3:303) %>% # this runs to 304 because it takes 300 years to equilibrate
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+adult.chains21<-   rbind(mutate(ambient.adult.chains121, treatment="amb")[1:50,], mutate(warmed.adult.chains121, treatment="warm")[1:50,])%>%
+  gather("time", "population", 3:303)%>%
+  mutate(time=as.numeric(time))%>%
+  mutate(id=paste(as.character(rowid), as.character(treatment), sep="_"))
+
+
+eqannual20<-ggplot(subset(annual.chains20, population>0), aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density 2020")+
+  #geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+ #?
+  scale_colour_manual(values = c("dodgerblue",  "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+eqannual21<-ggplot(subset(annual.chains21, population>0), aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("annual seed equilibrium density 2021")+
+  #geom_line(data=subset(annual.eq, time<12), size=1.5, aes(x=time, y=a, color=temp))+ #?
+  scale_colour_manual(values = c("dodgerblue",  "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+eqseedling20<-ggplot(subset(seedling.chains20, population>0), aes(time, population))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density 2020")+
+  # geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+eqseedling21<-ggplot(subset(seedling.chains21, population>0), aes(time, population))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial seed equilibrium density 2021")+
+  # geom_line(data=subset(perennial.eq, type=="seedling"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+
+eqadult20<-ggplot(subset(adult.chains20, population>0), aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density 2020")+
+  geom_line(data=subset(subset(perennial.eq,year==20) , type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+eqadult21<-ggplot(subset(adult.chains21, population>0), aes(time, (population)))+ 
+  geom_line(size=.3, alpha=.15, aes(group=id, color=treatment))+ylab("perennial adult equilibrium density 2021")+
+  geom_line(data=subset(subset(perennial.eq,year==21) ,  type=="adult"), size=1.5, aes(x=time, y=density, color=temp))+
+  scale_colour_manual(values = c("dodgerblue", "darkred"))+scale_y_continuous(trans='log10', labels = scales::comma)
+
+## population ove time
+ggarrange(eqannual20, eqannual21, nrow=1, ncol=2, common.legend = T)
+ggarrange(eqadult20, eqadult21, nrow=1, ncol=2, common.legend = T)
+ggarrange(eqseedling20, eqseedling21, nrow=1, ncol=2, common.legend = T)
+
 
 
 
