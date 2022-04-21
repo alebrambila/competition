@@ -3,23 +3,8 @@ library(rstan)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-source('data.cleaning.R')
-
-#ANNUALS ----
-annuals2020<-subset(annuals, time==2020)%>%
-  mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         percap=as.integer(percap))%>%
-  select(warmtrt, percap, starting_pm2, seeded_am2)
-
-annuals2021<-subset(annuals, time==2021)%>%
-  mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         percap=as.integer(percap))%>%
-  select(warmtrt, percap, starting_pm2, seeded_am2)
-
-ggplot(annuals2020, aes(y=seeded_am2, x=starting_pm2, color=log(percap))) +geom_jitter()
-ggplot(annuals, aes(x=seeded_am2, color=starting_pm2, y=log(percap))) +geom_point()
-
-# alternate versions with perennial phytometers dropped to zero in no competition treatment
+#source('data.cleaning.R')
+#  perennial phytometers dropped to zero in no competition treatment
 # because they are far away
 
 annuals2020<-subset(annuals, time==2020)%>%
@@ -35,11 +20,15 @@ annuals2021<-subset(annuals, time==2021)%>%
   select(warmtrt, percap, starting_pm2, seeded_am2)
 
 
+ggplot(annuals2020, aes(y=seeded_am2, x=starting_pm2, color=log(percap))) +geom_jitter()
+ggplot(annuals, aes(shape=time, x=seeded_am2, color=starting_pm2, y=(percap))) +geom_point()
+
 #check prior by finiding max and mean percap of the highest treatment
-annuals_lambdaprior<-annuals%>%
+max(annuals_lambdaprior<-annuals%>%
   filter(starting_pm2<3&seeded_am2<100)%>%
   select(percap)%>%
-  log()
+  log())
+
 
 #2020 data
 N <- length(annuals2020$percap)
@@ -91,8 +80,8 @@ annuals_fit2021 <- stan(file="annuals_model.stan",
 #annuals_fit<-load("annuals_fit032122.rdata")
 
 ## Look at resulting estimated parameter distributions
-stan_dens(annuals_fit2020, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
-stan_dens(annuals_fit2021, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
+#stan_dens(annuals_fit2020, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
+#stan_dens(annuals_fit2021, pars = c("lambdaA_amb", "lambdaA_slope", "alphaAA_amb", "alphaAA_slope", "alphaAP_amb", "alphaAP_slope"))
 
 annuals_estimates2020 <-as.data.frame(annuals_fit2020)%>%
   mutate(lambdaA_warm=lambdaA_amb+lambdaA_slope, 
@@ -117,14 +106,6 @@ annuals_estimates2021 <-as.data.frame(annuals_fit2021)%>%
 
 
 #ADULT PERENNIALS ----
-
-#check prior by finiding max and mean percap of the highest treatment
-adults_lambdaprior<-adults%>%
-  filter(starting_pm2<3&seeded_am2<100)%>%
-  select(percap)%>%
-  log()
-
-
 adults<-dat_p%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
          fecundity=as.integer(fecundity))%>%
@@ -132,18 +113,15 @@ adults<-dat_p%>%
 
 #check prior by finiding max and mean percap of the highest treatment
 ggplot(adults, aes(x=starting_pm2, y=seeded_am2, color=log(fecundity)))+geom_jitter()
+ggplot(adults, aes(shape=time, x=starting_pm2, color=seeded_am2, y=(fecundity))) +geom_point()
 
 adults_lambdaprior<-adults%>%
   filter(starting_pm2<3&seeded_am2<100)%>%
   select(fecundity)%>%
   log()
 
-adults2020<-filter(adults, time==2020)
-adults2021<-filter(adults, time==2021)
-
 # alternate versions with perennial phytometers dropped to zero in no competition treatment
 # because they are far away
-
 adults2020<-filter(adults, time==2020)%>%
   mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="seedling perennials", 0, seeded_am2 ))%>%
   select(warmtrt, fecundity, starting_pm2, seeded_am2)
@@ -163,7 +141,7 @@ seeded_am2 <- adults2020$seeded_am2
 
 adults_datavector <- c("N", "fecundity", "seeded_am2","starting_pm2", "warmtrt")
 
-initials <- list(lambdaP_amb=10, lambdaP_slope=-0.5, 
+initials <- list(lambdaP_amb=8, lambdaP_slope=-0.5, 
                  alphaPA_amb=-1, alphaPA_slope=0, 
                  alphaPP_amb=-1, alphaPP_slope=0)
 
@@ -171,7 +149,7 @@ initials1<- list(initials, initials, initials)
 
 adults_fit2020 <- stan(file="adults_model.stan", 
                        data=adults_datavector,
-                       iter=3000,
+                       iter=5000,
                        chains = 3,
                        # thin = 1,
                        control = list(adapt_delta = 0.9, max_treedepth = 10),
@@ -186,25 +164,11 @@ seeded_am2 <- adults2021$seeded_am2
 
 adults_fit2021 <- stan(file="adults_model.stan", 
                     data=adults_datavector,
-                    iter=3000,
+                    iter=5000,
                     chains = 3,
                     # thin = 1,
                     control = list(adapt_delta = 0.9, max_treedepth = 10),
                     init = initials1)
-
-traceplot(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-traceplot(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-
-#pairs(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-#pairs(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-
-### Save posterior distributions to file
-#save(adults_fit, file = "adults_fit032122.rdata")
-#annuals_fit<-load("adults_fit032122.rdata")
-
-## Look at resulting estimated parameter distributions
-stan_dens(adults_fit2020, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
-stan_dens(adults_fit2021, pars=c("lambdaP_amb", "lambdaP_slope", "alphaPA_amb", "alphaPA_slope", "alphaPP_amb", "alphaPP_slope"))
 
 
 adults_estimates2020 <-as.data.frame(adults_fit2020)%>%
@@ -229,25 +193,11 @@ adults_estimates2021 <-as.data.frame(adults_fit2021)%>%
 
 
 #SEEDLING PERENNIALS
-
-seedlings2020<-filter(seedlings, time==2020)%>%
-  mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
-  mutate(true_survival=survivors/seeded_sm2)
-
-seedlings2021<-filter(seedlings, time==2021)%>%
-  mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         survivors=as.integer(fall.g)) %>%#make integer
-  select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
-  mutate(true_survival=survivors/seeded_sm2)
-
-#alternate modified
 seedlings2020<-filter(seedlings, time==2020)%>%
   mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="adult perennials", 0, seeded_am2 ))%>%
   mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="annuals", 0, starting_pm2 ))%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         survivors=as.integer(fall.g)) %>%#make integer
+         survivors=as.integer(fall)) %>%#make integer
   select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
   mutate(true_survival=survivors/seeded_sm2)
 
@@ -255,7 +205,7 @@ seedlings2021<-filter(seedlings, time==2021)%>%
   mutate(seeded_am2=ifelse(comptrt=="none"|comptrt=="adult perennials", 0, seeded_am2 ))%>%
   mutate(starting_pm2=ifelse(comptrt=="none"|comptrt=="annuals", 0, starting_pm2 ))%>%
   mutate(warmtrt = ifelse(warmtrt == 'warm', 1, 0), 
-         survivors=as.integer(fall.g)) %>%#make integer
+         survivors=as.integer(fall)) %>%#make integer
   select(warmtrt, survivors, starting_pm2, seeded_am2, seeded_sm2)%>%
   mutate(true_survival=survivors/seeded_sm2)
 
@@ -294,7 +244,7 @@ initials1<- list(initials, initials, initials)
 
 seedlings_fit2020 <- stan(file="seedlings_model.stan", 
                           data=seedlings_datavector,
-                          iter=3000,
+                          iter=5000,
                           chains = 3,
                           # thin = 1,
                           control = list(adapt_delta = 0.9, max_treedepth = 10),
@@ -313,25 +263,12 @@ true_survival <- seedlings2021$true_survival
 
 seedlings_fit2021 <- stan(file="seedlings_model.stan", 
                    data=seedlings_datavector,
-                   iter=3000,
+                   iter=5000,
                    chains = 3,
                    # thin = 1,
                    control = list(adapt_delta = 0.9, max_treedepth = 10),
                    init = initials1)
 
-traceplot(seedlings_fit2021, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-traceplot(seedlings_fit2020, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-
-#pairs(seedlings_fit, pars=c("lambdaS_amb", "lambdaS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-# pairs(no_dist_seeds_brho_hi_hi, pars = c('lambda_int', 'lambda_slope')
-
-### Save posterior distributions to file
-#save(seedlings_fit, file = "seedlings_fit032122.rdata")
-#annuals_fit<-load("adults_fit032122.rdata")
-
-## Look at resulting estimated parameter distributions
-stan_dens(seedlings_fit2020, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
-stan_dens(seedlings_fit2021, pars=c("survivalS_amb", "survivalS_slope", "alphaSA_amb", "alphaSA_slope", "alphaSP_amb", "alphaSP_slope", "alphaSS_amb", "alphaSS_slope"))
 
 seedlings_estimates2020 <-as.data.frame(seedlings_fit2020)%>%
   mutate(survivalS_warm=survivalS_amb+survivalS_slope, 
@@ -360,7 +297,7 @@ seedlings_estimates2021 <-as.data.frame(seedlings_fit2021)%>%
 
 
 
-### version with no seedling competition
+### version with no seedling competition ----
 #2020
 N <- length(seedlings2020$survivors)
 survivors <- seedlings2020$survivors
@@ -381,7 +318,7 @@ initials1<- list(initials, initials, initials)
 
 seedlings_fit2020s <- stan(file="seedlings_model_simple.stan", 
                           data=seedlings_datavector,
-                          iter=3000,
+                          iter=5000,
                           chains = 3,
                           # thin = 1,
                           control = list(adapt_delta = 0.9, max_treedepth = 10),
@@ -399,7 +336,7 @@ true_survival <- seedlings2021$true_survival
 
 seedlings_fit2021s <- stan(file="seedlings_model_simple.stan", 
                           data=seedlings_datavector,
-                          iter=3000,
+                          iter=5000,
                           chains = 3,
                           # thin = 1,
                           control = list(adapt_delta = 0.9, max_treedepth = 10),
